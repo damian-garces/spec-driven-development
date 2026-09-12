@@ -138,6 +138,63 @@ specify init spec-driven-project --integration claude
 
 En este comando, `spec-driven-project` es el nombre de la carpeta que se creará para el proyecto. Se eligió este nombre porque describe claramente su propósito. No se recomienda utilizar `src`, ya que normalmente representa únicamente la carpeta del código fuente, ni `project`, porque es demasiado genérico.
 
+### Creación de la constitución del proyecto
+
+La constitución es el documento que define las reglas principales del proyecto. Funciona como una guía permanente para el agente de IA y organiza el proyecto de principio a fin mediante seis pilares:
+
+1. **Naturaleza del proyecto:** define qué es el proyecto, cuál es su propósito y qué problema busca resolver.
+2. **Stack tecnológico:** establece las tecnologías, herramientas y reglas base de implementación.
+3. **Reglas de dominio y lógica dura del negocio:** describe las reglas inmutables que la aplicación debe respetar y las condiciones que no pueden romperse.
+4. **Estructura y estilo de código:** define cómo se organiza el proyecto, cómo se escribe el código y qué convenciones de nomenclatura se deben seguir.
+5. **Manejo de errores y validaciones:** establece cómo validar los datos y cómo comunicar los errores sin exponer detalles técnicos al usuario final.
+6. **Fuente de la verdad:** indica qué documento tiene autoridad sobre el comportamiento del sistema y frena al agente de IA ante contradicciones, evitando que implemente código que no esté respaldado por la especificación.
+
+Estos seis pilares forman la anatomía de la constitución y sirven como referencia durante todas las etapas del desarrollo.
+
+Para generarla, entra en la carpeta del proyecto y abre Claude Code:
+
+```bash
+cd ~/spec-driven-development/spec-driven-project
+claude
+```
+
+Dentro de Claude Code, ejecuta el comando slash `/speckit-constitution` y pega el siguiente contenido. Es importante incluir la barra `/` al inicio, porque así Claude Code reconoce la skill como un comando invocable:
+
+```markdown
+# Constitución del Proyecto: Sistema de Reservas de Pádel
+
+## 1. Naturaleza del Proyecto
+Esta es una aplicación para la reserva de canchas de pádel. Su propósito es permitir a los usuarios autenticarse y gestionar reservas de tiempo en espacios específicos.
+
+## 2. Stack Tecnológico (Reglas de Implementación)
+- **Frontend / UI:** React. Usar Tailwind CSS para los estilos.
+- **Backend:** Node.js con Express.
+- **Base de Datos:** SQLite local (archivo `padel.db`). No usar ORMs pesados para mantener la simplicidad; usar `better-sqlite3` o sentencias SQL puras.
+- **Lenguaje:** TypeScript en todo el stack.
+
+## 3. Reglas de Dominio y Lógica de Negocio
+Estas reglas son inmutables. El agente de IA debe respetarlas estrictamente:
+- **Catálogo Cerrado:** El sistema SOLO maneja 5 canchas fijas: Cancha Laureles, Cancha El Poblado, Cancha Belén, Cancha Robledo y Cancha Envigado.
+- **Bloques de Tiempo:** Las reservas operan en formato de 24 horas.
+- **Prevención de Colisiones (Double-Booking):** Es la regla crítica del sistema. Bajo ninguna circunstancia se puede escribir una reserva en la base de datos sin validar primero que la cancha seleccionada esté libre en ese horario.
+- **Autenticación:** Todo flujo de reserva exige que haya un usuario con sesión activa.
+
+## 4. Estructura y Estilo de Código
+- **Estructura Plana:** Evitar la sobreingeniería. No implementar "Clean Architecture" ni patrones complejos. Usar una estructura simple: `/frontend`, `/backend` y `/db`.
+- **Estilo:** Priorizar la programación funcional y los componentes funcionales (Hooks en React). Evitar el uso de clases a menos que sea obligatorio.
+- **Nomenclatura:** Usar `camelCase` para funciones/variables y `PascalCase` para Interfaces/Tipos.
+
+## 5. Manejo de Errores y Validaciones
+- **UI:** Nunca exponer errores crudos o *stack traces* al usuario final. Todo error técnico debe traducirse a un mensaje amigable (por ejemplo: "La cancha ya fue reservada en este horario").
+- **Backend:** Retornar siempre códigos de estado HTTP semánticos (400 petición inválida, 401 no autenticado, 409 conflicto de reserva).
+
+## 6. Comportamiento del Agente de IA (Reglas SDD)
+- **Cero Código Sombra (Shadow Code):** Construye estrictamente lo documentado en `spec.md`. No añadas características "por si acaso" (no pasarelas de pago, no perfiles complejos, etc.).
+- **Fuente de la Verdad:** Si una instrucción del usuario contradice esta constitución o si detectas una falla lógica, detente. Advierte del problema y solicita actualizar el `spec.md` antes de tocar el código fuente.
+```
+
+Al finalizar, Spec Kit guardará la constitución en `.specify/memory/constitution.md`. Este archivo debe mantenerse dentro del repositorio porque contiene las reglas compartidas del proyecto. Si el comando no aparece, cierra Claude Code y vuelve a abrirlo desde `spec-driven-project`, no desde la carpeta raíz `spec-driven-development`.
+
 ---
 
 ## 📁 Estructura del Repositorio
