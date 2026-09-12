@@ -138,6 +138,24 @@ specify init spec-driven-project --integration claude
 
 En este comando, `spec-driven-project` es el nombre de la carpeta que se creará para el proyecto. Se eligió este nombre porque describe claramente su propósito. No se recomienda utilizar `src`, ya que normalmente representa únicamente la carpeta del código fuente, ni `project`, porque es demasiado genérico.
 
+---
+
+## 📁 Estructura del Repositorio
+
+```text
+Spec Driven Development/
+├── README.md              # Documentación y guía de herramientas del proyecto
+└── spec-driven-project/   # Proyecto generado por Spec Kit
+```
+
+---
+
+## 🚀 Flujo de Trabajo con SDD
+
+1. **Requisitos e Inicialización:** Configurar Git, Python, uv, Claude Code y Spec Kit.
+2. **Generación de Especificaciones:** Utilizar Spec Kit dentro de Claude Code para crear los contratos y especificaciones técnicas.
+3. **Desarrollo:** Crear la subcarpeta del proyecto e implementar la solución guiada por las especificaciones generadas.
+
 ### Creación de la constitución del proyecto
 
 La constitución es el documento que define las reglas principales del proyecto. Funciona como una guía permanente para el agente de IA y organiza el proyecto de principio a fin mediante seis pilares:
@@ -194,21 +212,3 @@ Estas reglas son inmutables. El agente de IA debe respetarlas estrictamente:
 ```
 
 Al finalizar, Spec Kit guardará la constitución en `.specify/memory/constitution.md`. Este archivo debe mantenerse dentro del repositorio porque contiene las reglas compartidas del proyecto. Si el comando no aparece, cierra Claude Code y vuelve a abrirlo desde `spec-driven-project`, no desde la carpeta raíz `spec-driven-development`.
-
----
-
-## 📁 Estructura del Repositorio
-
-```text
-Spec Driven Development/
-├── README.md              # Documentación y guía de herramientas del proyecto
-└── spec-driven-project/   # Proyecto generado por Spec Kit
-```
-
----
-
-## 🚀 Flujo de Trabajo con SDD
-
-1. **Requisitos e Inicialización:** Configurar Git, Python, uv, Claude Code y Spec Kit.
-2. **Generación de Especificaciones:** Utilizar Spec Kit dentro de Claude Code para crear los contratos y especificaciones técnicas.
-3. **Desarrollo:** Crear la subcarpeta del proyecto e implementar la solución guiada por las especificaciones generadas.
