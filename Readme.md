@@ -75,7 +75,7 @@ uv --version
 
 ### Claude Code
 
-Claude Code es la herramienta basada en agentes que se utilizará durante el desarrollo.
+Claude Code es un **agente de programación con IA** que puede utilizarse para trabajar con Spec Kit. Su instalación es opcional y solo es necesaria si eliges Claude Code como integración del proyecto.
 
 Instalación:
 
@@ -107,6 +107,37 @@ specify --help
 
 La instalación se considera correcta si cada comando de validación muestra la versión o la ayuda correspondiente sin errores.
 
+### Selección del agente de programación con IA
+
+Spec Kit permite trabajar con diferentes agentes de programación con IA. La opción `--integration` indica cuál utilizará el proyecto. Algunos ejemplos son:
+
+```bash
+# Claude Code
+specify init spec-driven-project --integration claude
+
+# GitHub Copilot
+specify init spec-driven-project --integration copilot
+
+# Codex CLI
+specify init spec-driven-project --integration codex
+```
+
+Debes elegir una sola opción al crear el proyecto y tener instalada la herramienta correspondiente. Para consultar todas las integraciones disponibles en la versión instalada de Spec Kit, ejecuta:
+
+```bash
+specify integration list
+```
+
+### Inicialización del proyecto
+
+Para crear la subcarpeta del proyecto utilizando la integración de Claude Code, ejecuta:
+
+```bash
+specify init spec-driven-project --integration claude
+```
+
+En este comando, `spec-driven-project` es el nombre de la carpeta que se creará para el proyecto. Se eligió este nombre porque describe claramente su propósito. No se recomienda utilizar `src`, ya que normalmente representa únicamente la carpeta del código fuente, ni `project`, porque es demasiado genérico.
+
 ---
 
 ## 📁 Estructura del Repositorio
@@ -114,7 +145,7 @@ La instalación se considera correcta si cada comando de validación muestra la 
 ```text
 Spec Driven Development/
 ├── README.md              # Documentación y guía de herramientas del proyecto
-└── <subcarpeta-proyecto>/ # Subcarpeta donde se desarrollará el proyecto en sí
+└── spec-driven-project/   # Proyecto generado por Spec Kit
 ```
 
 ---
