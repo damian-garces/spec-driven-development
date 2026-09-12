@@ -277,3 +277,19 @@ El comando no entrega un solo archivo, sino varios artefactos que cubren distint
 - **quickstart.md:** indica cómo inicializar el backend y el frontend de la aplicación.
 
 Al finalizar, Spec Kit guardará el plan técnico en la carpeta de artefactos de la funcionalidad. Este plan será la base para dividir el trabajo en tareas concretas con `/speckit-tasks` y luego implementarlas con `/speckit-implement`.
+
+### Generación de tareas
+
+Una vez creado el plan técnico, se ejecuta `/speckit-tasks`. Este comando toma el `plan.md` y el resto de artefactos generados (`research.md`, el modelo de datos, el contrato de APIs y `quickstart.md`) y los descompone en una lista de tareas concretas, ordenadas y accionables, listas para implementarse una por una.
+
+Dentro de Claude Code, ejecuta el comando slash `/speckit-tasks` después de haber ejecutado `/speckit-plan`, ya que este comando depende del plan técnico ya generado para construir la lista de tareas.
+
+Cada tarea del archivo `tasks.md` sigue el formato `[ID] [P?] [Story] Descripción`, donde:
+
+- **ID:** identificador secuencial de la tarea, por ejemplo `T001`.
+- **[P]:** marca opcional que indica que esa tarea puede ejecutarse en paralelo con otras, porque toca archivos distintos y no depende de tareas pendientes.
+- **[Story]:** indica a qué historia de usuario pertenece la tarea (por ejemplo `US1`, `US2`, `US3`), para poder implementar y probar cada historia de forma independiente.
+
+Las tareas se agrupan por fases: **Setup** (estructura inicial del proyecto), **Foundational** (infraestructura común que bloquea a todas las historias), una fase por cada **historia de usuario** (ordenadas por prioridad) y, opcionalmente, **Polish** al final. Cada fase de historia incluye un **Checkpoint**, que describe cómo validar que esa historia ya funciona de forma independiente antes de continuar con la siguiente.
+
+Al finalizar, Spec Kit guardará la lista de tareas en `tasks.md`, dentro de la carpeta de artefactos de la funcionalidad. Esta lista será la que se siga paso a paso al ejecutar `/speckit-implement`.

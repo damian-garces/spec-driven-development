@@ -1,0 +1,233 @@
+---
+
+description: "Task list template for feature implementation"
+---
+
+# Tasks: Reserva de Canchas de Pádel
+
+**Input**: Design documents from `/specs/001-reserva-canchas-padel/`
+
+**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/api.md, quickstart.md
+
+**Tests**: No solicitados explícitamente en spec.md (no se pide TDD ni suite de tests); por lo tanto esta lista NO incluye tareas de escritura de tests, en línea con el Principio IV (Simplicidad Ante Todo / YAGNI) y "Cero Código Sombra" de la constitución. La validación funcional se hace ejecutando los escenarios de `quickstart.md`.
+
+**Organization**: Las tareas están agrupadas por historia de usuario (US1, US2, US3) para permitir implementación y prueba independiente de cada una.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: Puede ejecutarse en paralelo (archivos distintos, sin dependencias pendientes)
+- **[Story]**: Historia de usuario a la que pertenece (US1, US2, US3)
+- Cada tarea incluye la ruta de archivo exacta
+
+## Path Conventions
+
+Aplicación web (Opción 2 de plan.md): `backend/src/`, `frontend/src/`, `db/` en la raíz del repositorio.
+
+---
+
+## Phase 1: Setup (Shared Infrastructure)
+
+**Purpose**: Inicialización del proyecto y estructura base
+
+- [ ] T001 Create root project structure per plan.md: `backend/`, `frontend/`, `db/` directories at repository root
+- [ ] T002 [P] Initialize backend TypeScript/Express project in `backend/package.json` and `backend/tsconfig.json` with dependencies `express`, `better-sqlite3`, `bcrypt`, `express-session`, plus their `@types/*` dev dependencies
+- [ ] T003 [P] Initialize frontend React + TypeScript project (Vite scaffold) in `frontend/package.json`, `frontend/tsconfig.json`, `frontend/vite.config.ts`, with Tailwind CSS configured in `frontend/tailwind.config.js` and `frontend/postcss.config.js`
+- [ ] T004 [P] Configure ESLint + Prettier for the backend in `backend/.eslintrc.cjs` and `backend/.prettierrc`, enforcing `camelCase` for functions/variables and `PascalCase` for interfaces/types per the constitution's Principio IV
+- [ ] T005 [P] Configure ESLint + Prettier for the frontend in `frontend/.eslintrc.cjs` and `frontend/.prettierrc`, enforcing the same naming conventions and functional-components-only rule (no class components)
+
+---
+
+## Phase 2: Foundational (Blocking Prerequisites)
+
+**Purpose**: Infraestructura núcleo que TODAS las historias de usuario necesitan
+
+**⚠️ CRITICAL**: Ninguna historia de usuario puede comenzar hasta que esta fase esté completa
+
+- [ ] T006 Create SQLite schema in `backend/src/db/schema.sql` with tables `usuarios` (`id` PK, `correo TEXT UNIQUE NOT NULL`, `password_hash TEXT NOT NULL`, `fecha_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP`), `canchas` (`id` PK, `nombre TEXT UNIQUE NOT NULL`), and `reservas` (`id` PK, `usuario_id INTEGER NOT NULL REFERENCES usuarios(id)`, `cancha_id INTEGER NOT NULL REFERENCES canchas(id)`, `fecha TEXT NOT NULL`, `hora_inicio TEXT NOT NULL`, `hora_fin TEXT NOT NULL`, `estado TEXT NOT NULL CHECK(estado IN ('activa','cancelada','completada'))`, `creada_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP`), plus the partial unique index `CREATE UNIQUE INDEX ux_reservas_bloque_activo ON reservas(cancha_id, fecha, hora_inicio) WHERE estado = 'activa'` exactly as specified in data-model.md
+- [ ] T007 Create DB connection + schema bootstrap module in `backend/src/db/connection.ts` that opens `db/padel.db` via `better-sqlite3` and applies `schema.sql` on startup if tables don't exist
+- [ ] T008 Create idempotent seed script in `backend/src/db/seed.ts` that inserts the 5 fixed canchas ("Cancha Laureles", "Cancha El Poblado", "Cancha Belén", "Cancha Robledo", "Cancha Envigado") only if the `canchas` table is empty, per Principio I (catálogo cerrado e inmutable, sin endpoint de creación) — depends on T006, T007
+- [ ] T009 [P] Implement central error-handling middleware in `backend/src/middleware/errorHandler.ts` that maps thrown errors to semantic HTTP codes (400/401/403/404/409) and a `{ "error": "<mensaje amigable>" }` JSON body, never leaking stack traces, per Principio V
+- [ ] T010 [P] Implement session middleware configuration (`express-session` with an HTTP-only cookie) in `backend/src/middleware/session.ts` per the decision in research.md §1
+- [ ] T011 [P] Implement auth guard middleware `requireAuth` in `backend/src/middleware/auth.ts` that returns `401 Unauthorized` with `{ "error": "No hay sesión activa." }` when there is no active session, per Principio III
+- [ ] T012 Create Express app entrypoint in `backend/src/api/app.ts` wiring JSON body parsing, the session middleware (T010), and the error handler (T009) as the last middleware — depends on T009, T010, T011
+- [ ] T013 Create backend server bootstrap in `backend/src/server.ts` that runs the schema bootstrap (T007) and seed (T008) on startup, then starts the Express app (T012) listening on a configurable port — depends on T007, T008, T012
+- [ ] T014 [P] Create frontend API client service in `frontend/src/services/apiClient.ts`: a `fetch` wrapper sending `credentials: "include"` (to carry the session cookie) and normalizing JSON error bodies from the backend
+- [ ] T015 [P] Create frontend app shell and router in `frontend/src/App.tsx` with placeholder routes for `Login`, `Registro`, `Canchas`, `DetalleCancha`, and `MisReservas` pages
+- [ ] T016 [P] Configure Tailwind base styles and layout in `frontend/src/index.css` and `frontend/src/main.tsx`
+
+**Checkpoint**: Fundación lista — la implementación de historias de usuario puede comenzar
+
+---
+
+## Phase 3: User Story 1 - Registro e Inicio de Sesión (Priority: P1) 🎯 MVP
+
+**Goal**: Un visitante puede registrarse con correo/contraseña e iniciar sesión; solo usuarios con sesión activa pueden acceder a disponibilidad completa y creación de reservas.
+
+**Independent Test**: Registrar una cuenta nueva, cerrar sesión, volver a iniciar sesión con las mismas credenciales; verificar que un visitante sin sesión no puede acceder a la disponibilidad completa ni a la creación de reservas.
+
+### Implementation for User Story 1
+
+- [ ] T017 [P] [US1] Create usuario data-access module in `backend/src/models/usuarios.ts` with `insertUsuario(correo, passwordHash)` and `findUsuarioByCorreo(correo)`, normalizing `correo` to lowercase before every insert/comparison and relying on the `UNIQUE NOT NULL` constraint on `usuarios.correo` from data-model.md
+- [ ] T018 [US1] Implement auth service in `backend/src/services/authService.ts`: `registrar(correo, password)` validates email format and a minimum password length, hashes the password with `bcrypt`, and rejects an already-registered `correo` with a friendly conflict (FR-002); `iniciarSesion(correo, password)` compares via `bcrypt` and rejects wrong credentials (FR-003) — depends on T017
+- [ ] T019 [US1] Implement `POST /api/auth/registro` route in `backend/src/api/authRoutes.ts` returning `201` on success, `400` on invalid input, `409 { "error": "El correo ya está en uso." }` on duplicate email, per contracts/api.md — depends on T018
+- [ ] T020 [US1] Implement `POST /api/auth/login` route in `backend/src/api/authRoutes.ts` establishing the session cookie on success (`200`) or returning `401 { "error": "Correo o contraseña incorrectos." }`, per contracts/api.md — depends on T018, T010
+- [ ] T021 [US1] Implement `POST /api/auth/logout` route in `backend/src/api/authRoutes.ts` destroying the active session (`200 { "ok": true }`) or `401` if there was none, per contracts/api.md — depends on T020
+- [ ] T022 [US1] Implement `GET /api/auth/me` route in `backend/src/api/authRoutes.ts` returning the session user (`200`) or `401 { "error": "No hay sesión activa." }`, per contracts/api.md — depends on T020
+- [ ] T023 [US1] Wire `authRoutes` into the Express app in `backend/src/api/app.ts` — depends on T019, T020, T021, T022, T012
+- [ ] T024 [P] [US1] Create Registro page in `frontend/src/pages/Registro.tsx` calling `POST /api/auth/registro` and showing the friendly error on `400`/`409` — depends on T014, T019
+- [ ] T025 [P] [US1] Create Login page in `frontend/src/pages/Login.tsx` calling `POST /api/auth/login` and showing the friendly error on `401` — depends on T014, T020
+- [ ] T026 [P] [US1] Create session/auth React context and hook in `frontend/src/services/authContext.tsx` exposing the current user (via `GET /api/auth/me`), a `login`/`logout` action, and a loading state — depends on T014, T022
+- [ ] T027 [US1] Implement a `RequireAuth` route-guard component in `frontend/src/components/RequireAuth.tsx` that redirects an unauthenticated visitor to `Login` when trying to reach the disponibilidad or reservas routes (FR-004) — depends on T026
+- [ ] T028 [US1] Wire the Registro/Login pages, the `authContext` provider, and the `RequireAuth` guard into `frontend/src/App.tsx` router — depends on T024, T025, T026, T027, T015
+
+**Checkpoint**: En este punto, la Historia de Usuario 1 debe ser completamente funcional y probable de forma independiente
+
+---
+
+## Phase 4: User Story 2 - Consultar Disponibilidad y Reservar una Cancha (Priority: P1)
+
+**Goal**: Un usuario autenticado elige una de las 5 canchas y una fecha, ve la grilla de 24 bloques horarios (disponible/reservado), y confirma una reserva sobre un bloque libre, con revalidación atómica anti-colisión y límite de una reserva activa global.
+
+**Independent Test**: Con un usuario autenticado y datos de prueba, seleccionar cancha y fecha, confirmar que los bloques ocupados se muestran como "Reservados" y los libres como "Disponibles", y completar una reserva sobre un bloque libre; verificar rechazo ante colisión y ante una segunda reserva activa.
+
+### Implementation for User Story 2
+
+- [ ] T029 [P] [US2] Create canchas data-access module in `backend/src/models/canchas.ts` with `listCanchas()` and `findCanchaById(id)`, reading the fixed catalog seeded in T008
+- [ ] T030 [P] [US2] Create reservas data-access module in `backend/src/models/reservas.ts` with `findBloquesReservados(canchaId, fecha)`, `findReservaActivaByUsuario(usuarioId)`, `insertReservaAtomic(usuarioId, canchaId, fecha, horaInicio, horaFin)` (wrapped in a `BEGIN IMMEDIATE` transaction per research.md §3), and `findReservaById(id)`, relying on the `ux_reservas_bloque_activo` partial unique index from data-model.md as the DB-level backstop
+- [ ] T031 [P] [US2] Implement disponibilidad service in `backend/src/services/disponibilidadService.ts` building the 24-block grid (`00:00`→`23:00`, one entry per hour) marking each block `"disponible"` or `"reservado"` for a given cancha + fecha (FR-008) — depends on T029, T030
+- [ ] T032 [P] [US2] Implement reserva service in `backend/src/services/reservaService.ts`: `crearReserva(usuarioId, canchaId, fecha, horaInicio)` validates the block is one of the 24 aligned hourly slots (FR-013) and not in the past (FR-014), then — inside the same transaction — revalidates availability and the user's active-reservation limit before inserting (FR-010, FR-011, FR-015), translating a collision into `409 { "error": "Este horario ya no está disponible." }` and an existing active reservation into `409 { "error": "Ya tienes una reserva activa. Cancélala antes de crear una nueva." }` — depends on T030
+- [ ] T033 [US2] Implement `GET /api/canchas` route (no auth required) in `backend/src/api/canchasRoutes.ts` returning the 5 canchas in fixed order, per contracts/api.md — depends on T029
+- [ ] T034 [US2] Implement `GET /api/canchas/:id/disponibilidad` route in `backend/src/api/canchasRoutes.ts`, protected by `requireAuth` (T011), returning `400`/`401`/`404` per contracts/api.md — depends on T031, T033, T011
+- [ ] T035 [US2] Implement `POST /api/reservas` route in `backend/src/api/reservasRoutes.ts`, protected by `requireAuth` (T011), returning `201`/`400`/`401`/`404`/`409` per contracts/api.md — depends on T032, T011
+- [ ] T036 [US2] Wire `canchasRoutes` and `reservasRoutes` into the Express app in `backend/src/api/app.ts` — depends on T034, T035, T023
+- [ ] T037 [P] [US2] Create Canchas listing page in `frontend/src/pages/Canchas.tsx` calling `GET /api/canchas` (accessible without session, FR-006) — depends on T014, T033
+- [ ] T038 [P] [US2] Create the date-picker + 24-block schedule grid component in `frontend/src/components/GrillaHorarios.tsx` rendering each block's `"disponible"`/`"reservado"` state — depends on T014, T034
+- [ ] T039 [US2] Create DetalleCancha page in `frontend/src/pages/DetalleCancha.tsx` combining date selection, `GrillaHorarios`, and the reservation-confirmation flow, showing the friendly `409` messages (bloque no disponible / ya tiene reserva activa) — depends on T037, T038, T035, T027
+- [ ] T040 [US2] Wire the Canchas and DetalleCancha pages into `frontend/src/App.tsx` router, protecting `DetalleCancha` with `RequireAuth` — depends on T039, T028
+
+**Checkpoint**: En este punto, las Historias de Usuario 1 y 2 deben funcionar de forma independiente
+
+---
+
+## Phase 5: User Story 3 - Gestionar Mis Reservas (Priority: P2)
+
+**Goal**: Un usuario autenticado consulta su panel de reservas futuras e historial (pasadas y canceladas), y puede cancelar una reserva futura.
+
+**Independent Test**: Con un usuario que ya tiene una reserva futura y una pasada (datos de prueba), abrir "Mis Reservas", verificar ambas listas con cancha/fecha/hora/estado, y cancelar la reserva futura.
+
+### Implementation for User Story 3
+
+- [ ] T041 [US3] Extend the reservas data-access module in `backend/src/models/reservas.ts` with `findReservasByUsuario(usuarioId)`, separating `futuras` from `historial` and deriving the effective `"completada"` state when `fecha` + `hora_fin` is in the past for a still-`"activa"` row, per the state machine in data-model.md — depends on T030
+- [ ] T042 [US3] Implement the "mis reservas" read in `backend/src/services/reservaService.ts` building the `{ futuras, historial }` response shape from contracts/api.md, each item including cancha nombre/fecha/hora/estado — depends on T041
+- [ ] T043 [US3] Implement cancellation logic in `backend/src/services/reservaService.ts`: `cancelarReserva(usuarioId, reservaId)` returns `403` if the reservation does not belong to `usuarioId` (Edge Case del spec), `409 { "error": "No se puede cancelar una reserva que ya pasó." }` if its effective state is already `"completada"` (FR-018), otherwise sets `estado = 'cancelada'`, immediately freeing the block for other users (FR-019) — depends on T030
+- [ ] T044 [US3] Implement `GET /api/reservas/mias` route in `backend/src/api/reservasRoutes.ts`, protected by `requireAuth` (T011), per contracts/api.md — depends on T042, T011
+- [ ] T045 [US3] Implement `DELETE /api/reservas/:id` route in `backend/src/api/reservasRoutes.ts`, protected by `requireAuth` (T011), returning `200`/`401`/`403`/`404`/`409` per contracts/api.md — depends on T043, T011
+- [ ] T046 [US3] Register the two new routes on the already-wired `reservasRoutes` router in `backend/src/api/app.ts` — depends on T044, T045, T036
+- [ ] T047 [P] [US3] Create MisReservas page in `frontend/src/pages/MisReservas.tsx` calling `GET /api/reservas/mias` and rendering the "futuras" and "historial" lists separately, each item showing cancha/fecha/hora/estado — depends on T014, T044
+- [ ] T048 [US3] Add a cancellation action with an explicit confirmation step to `frontend/src/pages/MisReservas.tsx`, calling `DELETE /api/reservas/:id` and refreshing both lists on success (FR-017) — depends on T047, T045
+- [ ] T049 [US3] Wire the MisReservas page into `frontend/src/App.tsx` router, protected by `RequireAuth` — depends on T048, T028
+
+**Checkpoint**: Todas las historias de usuario deben estar funcionalmente completas de forma independiente
+
+---
+
+## Phase 6: Polish & Cross-Cutting Concerns
+
+**Purpose**: Mejoras que afectan a varias historias de usuario
+
+- [ ] T050 [P] Complete the friendly error-message mapping in `frontend/src/services/apiClient.ts` for every documented status code (400/401/403/404/409) so the UI never shows a raw error or stack trace (Principio V)
+- [ ] T051 [P] Document backend/frontend setup and run commands in `Readme.md`, matching the "Puesta en marcha" steps of `specs/001-reserva-canchas-padel/quickstart.md`
+- [ ] T052 Execute the three end-to-end scenarios in `specs/001-reserva-canchas-padel/quickstart.md` manually against the running app and fix any discrepancy found
+
+---
+
+## Dependencies & Execution Order
+
+### Phase Dependencies
+
+- **Setup (Phase 1)**: Sin dependencias — puede iniciar de inmediato
+- **Foundational (Phase 2)**: Depende de Setup — BLOQUEA todas las historias de usuario
+- **User Stories (Phase 3-5)**: Todas dependen de que Foundational esté completa
+  - US1 (P1) no depende de otra historia
+  - US2 (P1) depende funcionalmente de que exista una sesión (US1) para probarse end-to-end, pero su código de disponibilidad/reserva es un módulo separado
+  - US3 (P2) depende de que existan reservas (US2) para tener datos que gestionar, y de sesión (US1)
+- **Polish (Phase 6)**: Depende de que las historias deseadas estén completas
+
+### User Story Dependencies
+
+- **User Story 1 (P1)**: Puede iniciar después de Foundational (Phase 2) — sin dependencias de otras historias
+- **User Story 2 (P1)**: Puede iniciar después de Foundational; su backend (T029-T036) es independiente de US1, pero probarla end-to-end requiere una sesión activa (creada por US1)
+- **User Story 3 (P2)**: Puede iniciar después de Foundational; su backend (T041-T046) reutiliza el módulo de reservas de US2 (T030) y su UI depende de la ruta protegida (T027/T028 de US1)
+
+### Within Each User Story
+
+- Modelos de datos antes que servicios
+- Servicios antes que endpoints
+- Endpoints backend antes que las páginas frontend que los consumen
+- Historia completa antes de pasar a la siguiente prioridad
+
+### Parallel Opportunities
+
+- Todas las tareas [P] de Setup pueden ejecutarse en paralelo
+- Todas las tareas [P] de Foundational pueden ejecutarse en paralelo entre sí
+- Dentro de US1: T017 (modelo) es paralelo a otras tareas de Setup/Foundational restantes; T024/T025/T026 (páginas y contexto, archivos distintos) son paralelas entre sí
+- Dentro de US2: T029/T030 (modelos, archivos distintos) son paralelos; T031/T032 (servicios, archivos distintos, ambos dependen solo de T029/T030) son paralelos entre sí; T037/T038 (páginas/componentes frontend) son paralelos entre sí
+- Distintos miembros de un equipo podrían tomar US1, US2 (backend) y US3 (backend) en paralelo tras Foundational, aunque las pruebas end-to-end de US2/US3 requieran que US1 esté disponible
+
+---
+
+## Parallel Example: User Story 2 (backend)
+
+```bash
+# Lanzar juntos los módulos de datos de US2 (archivos distintos):
+Task: "Create canchas data-access module in backend/src/models/canchas.ts"
+Task: "Create reservas data-access module in backend/src/models/reservas.ts"
+
+# Una vez completos, lanzar juntos los servicios (archivos distintos, ambos dependen solo de los modelos anteriores):
+Task: "Implement disponibilidad service in backend/src/services/disponibilidadService.ts"
+Task: "Implement reserva service in backend/src/services/reservaService.ts"
+```
+
+---
+
+## Implementation Strategy
+
+### MVP First (User Story 1 + User Story 2)
+
+1. Completar Phase 1: Setup
+2. Completar Phase 2: Foundational (CRÍTICO — bloquea todas las historias)
+3. Completar Phase 3: User Story 1 (registro/login)
+4. Completar Phase 4: User Story 2 (disponibilidad + reserva) — juntas, US1+US2 forman el producto mínimo utilizable descrito en spec.md ("sin esta historia no existe producto utilizable")
+5. **DETENER y VALIDAR**: ejecutar los Escenarios 1 y 2 de `quickstart.md` de forma independiente
+6. Desplegar/demostrar si está listo
+
+### Incremental Delivery
+
+1. Setup + Foundational → fundación lista
+2. Agregar US1 → validar registro/login de forma aislada
+3. Agregar US2 → validar disponibilidad + reserva + anti-colisión (Escenario 2 de quickstart.md) → MVP completo
+4. Agregar US3 → validar panel "Mis Reservas" y cancelación (Escenario 3 de quickstart.md)
+5. Fase de Polish → validación completa de los 3 escenarios de quickstart.md
+
+### Parallel Team Strategy
+
+Con varios desarrolladores:
+
+1. El equipo completa Setup + Foundational en conjunto
+2. Una vez lista la fundación:
+   - Desarrollador A: backend + frontend de US1
+   - Desarrollador B: backend de US2 (T029-T036), en paralelo, ya que no depende del código de US1
+   - Desarrollador C: espera a que T030 (modelo de reservas) esté listo para avanzar en el backend de US3 (T041-T046)
+3. La integración final de cada historia en el router (T028, T040, T049) se sincroniza al terminar cada una
+
+---
+
+## Notes
+
+- [P] tareas = archivos distintos, sin dependencias pendientes entre ellas
+- [Story] etiqueta cada tarea con su historia de usuario para trazabilidad
+- Cada historia de usuario debe ser completable y probable de forma independiente
+- Confirmar contra `quickstart.md` al cerrar cada historia
+- Hacer commit tras cada tarea o grupo lógico de tareas
+- Detenerse en cada checkpoint para validar la historia de forma independiente
+- Evitar: tareas vagas, conflictos de archivo simultáneos, dependencias cruzadas entre historias que rompan su independencia
