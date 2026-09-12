@@ -261,3 +261,19 @@ Al finalizar, Spec Kit guardará la especificación en la carpeta de artefactos 
 Después de generar la especificación, se ejecuta `/speckit-clarify`. Este comando revisa el `spec.md` en busca de áreas ambiguas o subespecificadas, hace preguntas puntuales al usuario para resolverlas y actualiza la especificación con las respuestas. Su objetivo es reducir el riesgo de reinterpretaciones incorrectas antes de pasar a la planificación técnica con `/speckit-plan`.
 
 Dentro de Claude Code, ejecuta el comando slash `/speckit-clarify` justo después de crear el `spec` con `/speckit-specify`, y antes de ejecutar `/speckit-plan`.
+
+### Generación del plan técnico
+
+Una vez aclarada la especificación, se ejecuta `/speckit-plan`. Este comando toma el `spec.md` ya aclarado (el "qué") y lo traduce en un plan técnico (el "cómo"): define la arquitectura, el stack a utilizar, los modelos de datos, los contratos entre componentes y el enfoque de implementación, siempre respetando las reglas ya establecidas en la constitución del proyecto.
+
+Dentro de Claude Code, ejecuta el comando slash `/speckit-plan` después de haber ejecutado `/speckit-clarify`, ya que este comando depende de la especificación ya aclarada para construir el plan.
+
+El comando no entrega un solo archivo, sino varios artefactos que cubren distintas capas del proyecto:
+
+- **plan.md:** contiene el contexto técnico, el chequeo de cumplimiento de la constitución y la estructura del proyecto.
+- **research.md:** investiga funcionalidades y su mejor forma de aplicarlas, por ejemplo la autenticación o la verificación de reserva activa única.
+- **Modelo de datos:** define las entidades del proyecto, por ejemplo qué es un usuario y qué es una cancha.
+- **Contrato de las APIs:** establece cómo se comunican los componentes entre sí.
+- **quickstart.md:** indica cómo inicializar el backend y el frontend de la aplicación.
+
+Al finalizar, Spec Kit guardará el plan técnico en la carpeta de artefactos de la funcionalidad. Este plan será la base para dividir el trabajo en tareas concretas con `/speckit-tasks` y luego implementarlas con `/speckit-implement`.
