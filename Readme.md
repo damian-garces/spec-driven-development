@@ -212,3 +212,52 @@ Estas reglas son inmutables. El agente de IA debe respetarlas estrictamente:
 ```
 
 Al finalizar, Spec Kit guardará la constitución en `.specify/memory/constitution.md`. Este archivo debe mantenerse dentro del repositorio porque contiene las reglas compartidas del proyecto. Si el comando no aparece, cierra Claude Code y vuelve a abrirlo desde `spec-driven-project`, no desde la carpeta raíz `spec-driven-development`.
+
+### Generación de la especificación del proyecto
+
+La especificación describe qué debe hacer el producto desde la perspectiva de los usuarios y del negocio. Su objetivo es convertir una idea general en requisitos funcionales claros, verificables y delimitados. También define los objetivos de la iteración y aquello que explícitamente no se va a construir, para evitar que el agente de IA agregue funcionalidades fuera del alcance.
+
+Dentro de Claude Code, ejecuta el comando slash `/speckit-specify` y pega la siguiente especificación:
+
+```markdown
+## Features principales
+
+### 1. Autenticación de Usuarios
+- Los usuarios deben poder registrarse e iniciar sesión usando un correo electrónico y contraseña.
+- Solo los usuarios con una sesión activa pueden visualizar la disponibilidad completa y realizar reservas.
+- Los usuarios solo pueden gestionar sus propias reservas, no las de terceros.
+
+### 2. Exploración y Selección de Canchas
+- El sistema debe listar estáticamente las 5 canchas disponibles: Cancha Laureles, Cancha El Poblado, Cancha Belén, Cancha Robledo y Cancha Envigado.
+- El usuario debe poder seleccionar una fecha específica en un calendario para ver la disponibilidad.
+- Para la fecha seleccionada, el sistema debe mostrar la grilla de horarios de 24 horas, en bloques de 1 hora, para la cancha elegida.
+- El sistema debe indicar claramente qué bloques horarios están "Disponibles" y cuáles están "Reservados".
+- Un usuario solo puede tener una reserva activa a la vez.
+
+### 3. Creación de Reservas
+- El usuario puede seleccionar un bloque horario disponible y confirmar su reserva.
+- **Regla Crítica (Prevención de colisión):** Antes de confirmar, el sistema debe revalidar que el bloque siga disponible. Si otro usuario tomó el turno en ese lapso de tiempo, la reserva debe ser rechazada con un mensaje de error claro.
+- Las reservas solo pueden hacerse en bloques enteros, por ejemplo, de 14:00 a 15:00.
+- No se pueden realizar reservas en fechas u horarios que ya hayan transcurrido.
+
+### 4. Gestión de Mis Reservas
+- El usuario debe tener un panel donde pueda ver la lista de sus reservas futuras y su historial de reservas pasadas.
+- Cada ítem de la lista debe mostrar: nombre de la cancha, fecha y hora.
+- El usuario puede cancelar una reserva futura seleccionándola en su panel y confirmando la acción.
+
+## Lo que NO se va a construir en esta iteración (Non-Goals)
+
+- NO habrá pasarela de pagos integrada; el pago se manejará presencialmente en el club.
+- NO habrá panel de administrador web para agregar, editar o eliminar canchas; el listado de 5 canchas es inmutable en el código.
+- NO habrá notificaciones externas, como correos transaccionales de confirmación ni mensajes SMS o WhatsApp.
+- NO habrá reservas de más de 1 hora continua en un solo clic; si alguien quiere 2 horas, debe hacer 2 reservas independientes.
+- NO habrá sistema de "matchmaking" para buscar compañeros de juego o torneos.
+```
+
+Al finalizar, Spec Kit guardará la especificación en la carpeta de artefactos del proyecto. Esta especificación será la referencia para los siguientes pasos de planificación, división de tareas e implementación.
+
+### Aclaración de la especificación
+
+Después de generar la especificación, se ejecuta `/speckit-clarify`. Este comando revisa el `spec.md` en busca de áreas ambiguas o subespecificadas, hace preguntas puntuales al usuario para resolverlas y actualiza la especificación con las respuestas. Su objetivo es reducir el riesgo de reinterpretaciones incorrectas antes de pasar a la planificación técnica con `/speckit-plan`.
+
+Dentro de Claude Code, ejecuta el comando slash `/speckit-clarify` justo después de crear el `spec` con `/speckit-specify`, y antes de ejecutar `/speckit-plan`.
