@@ -1,5 +1,7 @@
 # Spec Driven Development (SDD) - Curso Platzi
 
+🌐 **Read this in other languages:** [English](./Readme.en.md)
+
 Este repositorio contiene la estructura y documentación para el proyecto de **Spec-Driven Development (SDD)** de Platzi.
 
 ---
