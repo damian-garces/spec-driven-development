@@ -313,3 +313,50 @@ Dentro de Claude Code, ejecuta el comando slash `/speckit-implement` como últim
 `/speckit-converge` evalúa el código ya implementado contra `spec.md`, `plan.md` y `tasks.md`, y agrega como nuevas tareas en `tasks.md` cualquier trabajo pendiente o desviación detectada. Se usa para cerrar la brecha entre lo especificado y lo realmente construido, en lugar de asumir que la implementación quedó completa solo porque `/speckit-implement` terminó de ejecutarse.
 
 Dentro de Claude Code, ejecuta el comando slash `/speckit-converge` después de `/speckit-implement`. Si detecta trabajo pendiente, vuelve a ejecutar `/speckit-implement` para completarlo y repite `/speckit-converge` hasta que reporte que el proyecto está convergido.
+
+## 🔄 Cómo manejar cambios después de la implementación inicial
+
+El proyecto rara vez termina en el primer paso por todo el flujo. Con el tiempo aparecen nuevos requerimientos, funcionalidades adicionales o bugs. El comando por el que se empieza depende de **qué tan profundo** es el cambio: si toca las reglas base del proyecto, si es una funcionalidad nueva, o si es un ajuste sobre algo que ya existe.
+
+### 1. Nuevo requerimiento que modifica las bases del proyecto (afecta la constitución)
+
+Ocurre cuando el cambio toca algo estructural: el stack tecnológico, una regla de negocio inmutable, o una convención de código (por ejemplo, cambiar la base de datos de SQLite a MySQL).
+
+1. `/speckit-constitution` → actualiza el principio afectado; Spec Kit sube la versión del documento.
+2. `/speckit-plan` → regenera la arquitectura, dependencias y modelos según la nueva base.
+3. `/speckit-tasks` → regenera las tareas afectadas por el nuevo stack o regla.
+4. `/speckit-analyze` → detecta código o artefactos viejos que ya no cumplen la constitución actualizada.
+5. `/speckit-implement` → aplica los cambios de código.
+6. `/speckit-converge` → confirma que no quedó nada del enfoque anterior sin migrar.
+
+### 2. Nuevo requerimiento que genera una funcionalidad nueva
+
+Ocurre cuando se agrega algo que **no existía** en el alcance original (por ejemplo, un sistema de notificaciones), sin romper ninguna regla de la constitución actual.
+
+1. `/speckit-specify` → describe la nueva funcionalidad; puede convivir con el `spec.md` existente o crear uno nuevo, según si Spec Kit lo trata como una feature independiente.
+2. `/speckit-clarify` → resuelve ambigüedades de esta nueva especificación.
+3. `/speckit-plan` → genera el plan técnico específico de la nueva funcionalidad.
+4. `/speckit-tasks` → genera sus tareas.
+5. `/speckit-analyze` → valida consistencia contra la constitución y el resto del proyecto.
+6. `/speckit-implement` → construye la funcionalidad.
+7. `/speckit-converge` → verifica que quedó completamente implementada.
+
+### 3. Corrección de un bug reportado por un usuario que requiere modificar la especificación
+
+Ocurre cuando el comportamiento actual **contradice** lo que dice la especificación, o cuando la especificación describía algo mal y por eso el sistema se construyó de forma incorrecta (como el caso del horario de 24 horas de este proyecto).
+
+1. `/speckit-clarify` → corrige el punto exacto de `spec.md` que estaba mal definido.
+2. `/speckit-plan` y `/speckit-tasks` → se regeneran **solo si** el plan o las tareas existentes quedaron desalineados con la corrección.
+3. `/speckit-analyze` → confirma que la corrección no generó nuevas inconsistencias.
+4. `/speckit-implement` → aplica el fix en el código.
+5. `/speckit-converge` → valida que el bug quedó resuelto de punta a punta.
+
+### 4. Corrección de un bug que es un error de implementación, no de la especificación
+
+Ocurre cuando la especificación ya era correcta, pero el código no la cumple (un error de programación). En este caso **no se toca la spec**, porque el problema no está ahí.
+
+1. Corrige el código directamente, o pide la corrección puntual dentro de Claude Code sin pasar por `/speckit-specify` ni `/speckit-clarify`.
+2. `/speckit-analyze` → opcional, útil si el fix es grande y quieres confirmar que sigue alineado con `spec.md`, `plan.md` y `tasks.md`.
+3. `/speckit-converge` → opcional, para verificar que no quedó ningún trabajo pendiente relacionado.
+
+En los cuatro casos, la regla general es la misma: el cambio se documenta primero en el nivel correspondiente (constitución, especificación o ninguno si es solo un bug de código), y luego se deja que Spec Kit propague ese cambio hacia los niveles inferiores, en vez de editar el código directamente cuando el problema real está en la constitución o en la especificación.
