@@ -22,7 +22,7 @@ Aplicación web para que usuarios autenticados reserven bloques horarios de 1 ho
 
 **Project Type**: Web application (frontend + backend)
 
-**Performance Goals**: Respuesta de API < 300ms p95 en operaciones de lectura (disponibilidad) y < 500ms p95 en confirmación de reserva, bajo carga de uso de un solo club (decenas de usuarios concurrentes, no miles)
+**Performance Goals**: Respuesta de API < 300ms p95 en operaciones de lectura (disponibilidad) y < 500ms p95 en confirmación de reserva, bajo carga de uso de un solo club (decenas de usuarios concurrentes, no miles) — *objetivo aspiracional, no verificado con ninguna tarea de medición o carga en tasks.md*
 
 **Constraints**: Consistencia estricta anti-doble-reserva (Principio II, NON-NEGOTIABLE) mediante transacción atómica SQLite; sin dependencias externas de red (pagos, email/SMS); una única zona horaria del servidor
 

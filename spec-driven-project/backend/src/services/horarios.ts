@@ -19,6 +19,25 @@ export function esFechaValida(fecha: unknown): fecha is string {
   return typeof fecha === "string" && FECHA_REGEX.test(fecha) && !Number.isNaN(Date.parse(fecha));
 }
 
+/**
+ * ¿La `fecha` (`YYYY-MM-DD`) es estrictamente anterior al día actual del
+ * servidor? Comparación de cadenas simple, consistente con research.md §4 y
+ * usada por FR-021 para rechazar consultas de disponibilidad sobre fechas
+ * pasadas. Asume `fecha` ya validada por `esFechaValida`.
+ *
+ * Usa los componentes de fecha LOCALES de `ahora` (no `toISOString`, que es
+ * UTC) para no desalinearse con `bloqueYaPaso`, que interpreta `fecha`+`hora`
+ * como hora local del servidor (research.md §4: zona horaria única, sin
+ * conversión).
+ */
+export function esFechaPasada(fecha: string, ahora: Date = new Date()): boolean {
+  const anio = ahora.getFullYear();
+  const mes = String(ahora.getMonth() + 1).padStart(2, "0");
+  const dia = String(ahora.getDate()).padStart(2, "0");
+  const hoy = `${anio}-${mes}-${dia}`;
+  return fecha < hoy;
+}
+
 /** ¿Es uno de los 24 valores alineados (`00:00`, `01:00`, ..., `23:00`)? */
 export function esHoraInicioValida(horaInicio: unknown): horaInicio is string {
   return typeof horaInicio === "string" && BLOQUES_DIA.includes(horaInicio);

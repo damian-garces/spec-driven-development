@@ -70,7 +70,34 @@ a un diseño concreto.
 - **Alternatives considered**: Almacenar timestamps UTC con conversión en el
   cliente (descartado, complejidad no justificada sin requisito multi-zona).
 
-## 5. Frameworks de testing
+## 5. Filtrado de bloques pasados en la grilla del día actual (FR-021)
+
+- **Decision**: La construcción de la grilla de disponibilidad (Sección 4)
+  aplica un filtro adicional cuando `fecha === hoy` (fecha actual del
+  servidor, misma comparación de cadena `YYYY-MM-DD` de la Sección 4): del
+  conjunto fijo de 15 bloques operativos (`07:00`…`21:00`) solo se conservan,
+  en el mismo orden, los bloques cuya `horaInicio` sea `>= horaActual`. El
+  filtro se aplica en memoria, en el mismo servicio que arma la grilla
+  (`disponibilidadService`), después de resolver el estado
+  disponible/reservado de cada bloque; no requiere un flag ni columna nueva.
+  Para `fecha` futura a hoy, el filtro no se aplica y siempre se devuelven
+  los 15 bloques.
+- **Rationale**: FR-021 exige que la grilla de hoy excluya bloques cuya hora
+  de inicio ya pasó, devolviendo un arreglo de longitud variable (aclaración
+  2026-09-13), en vez de devolver los 15 bloques marcando los pasados con un
+  estado distinto. Comparar `horaInicio` (`TEXT "HH:00"`) contra la hora
+  actual del servidor formateada igual (`HH:00` truncado a la hora, ya que
+  los bloques son de 1h completa) es una comparación de cadenas simple,
+  consistente con la Sección 4 (sin aritmética de timezone), y evita
+  introducir un tercer estado de bloque ("pasado") no pedido por el spec.
+- **Alternatives considered**: Mantener siempre 15 bloques y marcar los
+  pasados con un estado `"pasado"` — descartado explícitamente por la
+  aclaración de 2026-09-13, que optó por longitud variable. Filtrar en el
+  cliente (frontend) en vez del backend — descartado porque el spec (Edge
+  Case) exige que la manipulación directa de la solicitud tampoco permita
+  ver/reservar bloques pasados; el filtro debe vivir en el servidor.
+
+## 6. Frameworks de testing
 
 - **Decision**: `vitest` como test runner único para backend y frontend (más
   rápido que Jest, configuración mínima, compatible con TypeScript sin

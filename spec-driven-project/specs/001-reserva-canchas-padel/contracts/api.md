@@ -73,7 +73,7 @@ un visitante puede ver el listado, pero no la disponibilidad detallada
 
 ### `GET /api/canchas/:id/disponibilidad?fecha=YYYY-MM-DD`
 
-Grilla de 15 bloques horarios, cubriendo el rango operativo de 07:00 a 22:00,
+Grilla de bloques horarios, cubriendo el rango operativo de 07:00 a 22:00,
 para una cancha y fecha (FR-007, FR-008). **Requiere autenticación** (FR-004:
 disponibilidad completa solo para usuarios con sesión activa).
 
@@ -89,10 +89,18 @@ disponibilidad completa solo para usuarios con sesión activa).
     ]
   }
   ```
-  (siempre 15 elementos en `bloques`, uno por cada hora operativa, orden
-  `07:00`→`21:00`; los bloques entre `22:00` y `06:00` no forman parte de la
-  respuesta — FR-008)
-- `400 Bad Request` → `fecha` ausente o con formato inválido
+  Longitud de `bloques` (FR-021):
+  - `fecha` **futura** respecto a hoy → siempre 15 elementos, uno por cada
+    hora operativa, orden `07:00`→`21:00` (los bloques entre `22:00` y
+    `06:00` no forman parte de la respuesta — FR-008).
+  - `fecha` **igual a hoy** (fecha actual del servidor) → arreglo de longitud
+    variable: solo los bloques cuya `horaInicio` sea igual o posterior a la
+    hora actual del servidor, en el mismo orden; si ya transcurrió el último
+    bloque operativo (ej. después de las 21:00), `bloques` es `[]` (grilla
+    vacía, sin error).
+- `400 Bad Request` →
+  - `fecha` ausente o con formato inválido → `{ "error": "La fecha indicada no es válida." }`
+  - `fecha` anterior a hoy (fecha pasada) → `{ "error": "La fecha indicada ya pasó." }`
 - `401 Unauthorized` → sin sesión activa
 - `404 Not Found` → `canchaId` inexistente
 

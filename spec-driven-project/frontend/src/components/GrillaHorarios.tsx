@@ -10,8 +10,22 @@ interface Props {
   onSeleccionar: (horaInicio: string) => void;
 }
 
-/** Grilla de 24 bloques horarios de 1h (FR-008): disponible vs. reservado. */
+/**
+ * Grilla de bloques horarios de 1h dentro del rango operativo 07:00–22:00
+ * (FR-008): disponible vs. reservado. Para la fecha de hoy, `bloques` puede
+ * venir con menos de 15 elementos o incluso vacío una vez que el último
+ * bloque operativo ya transcurrió (FR-021); en ese caso se muestra un
+ * mensaje en vez de una grilla vacía sin explicación.
+ */
 export default function GrillaHorarios({ bloques, bloqueSeleccionado, onSeleccionar }: Props) {
+  if (bloques.length === 0) {
+    return (
+      <p className="rounded border border-slate-200 bg-slate-50 px-3 py-4 text-sm text-slate-500">
+        No quedan horarios disponibles hoy.
+      </p>
+    );
+  }
+
   return (
     <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
       {bloques.map((bloque) => {

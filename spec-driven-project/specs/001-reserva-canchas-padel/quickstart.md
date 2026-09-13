@@ -65,6 +65,25 @@ dentro del rango operativo, y el usuario no tiene otra activa; ninguna doble
 reserva sobre el mismo bloque (SC-003). Corresponde a Acceptance Scenarios
 1-5 de US2.
 
+## Escenario 2b — Grilla de hoy con bloques pasados filtrados (US2, FR-021)
+
+1. Con sesión activa, `GET /api/canchas/:id/disponibilidad?fecha=<hoy>` un
+   momento después de que haya pasado al menos un bloque operativo (por
+   ejemplo, a las 14:00) → esperar `200` con `bloques` de **longitud menor a
+   15**: ningún elemento con `horaInicio` anterior a la hora actual (ej. no
+   debe aparecer `07:00`, `08:00`, …, `13:00`).
+2. Repetir la misma llamada con una `fecha` futura → esperar los 15 bloques
+   completos, sin filtrado (confirma que el filtro solo aplica a hoy).
+3. Repetir la llamada de disponibilidad de hoy después de las 21:00 (último
+   bloque operativo ya transcurrido) → esperar `200` con `bloques: []`
+   (grilla vacía, no un error).
+
+**Resultado esperado**: la grilla de hoy nunca ofrece bloques cuya hora de
+inicio ya pasó, incluso consultando directamente el endpoint sin pasar por
+la UI; las fechas futuras no se ven afectadas. Corresponde al Acceptance
+Scenario 6 de US2 y al Edge Case de "disponibilidad de hoy tras el último
+bloque operativo".
+
 ## Escenario 3 — Gestionar Mis Reservas (US3, P2)
 
 1. Con el usuario del Escenario 2 (tiene 1 reserva activa), llamar

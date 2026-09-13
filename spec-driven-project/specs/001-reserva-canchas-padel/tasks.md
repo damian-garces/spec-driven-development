@@ -94,14 +94,14 @@ Aplicación web (Opción 2 de plan.md): `backend/src/`, `frontend/src/`, `db/` e
 
 - [X] T029 [P] [US2] Create canchas data-access module in `backend/src/models/canchas.ts` with `listCanchas()` and `findCanchaById(id)`, reading the fixed catalog seeded in T008
 - [X] T030 [P] [US2] Create reservas data-access module in `backend/src/models/reservas.ts` with `findBloquesReservados(canchaId, fecha)`, `findReservaActivaByUsuario(usuarioId)`, `insertReservaAtomic(usuarioId, canchaId, fecha, horaInicio, horaFin)` (wrapped in a `BEGIN IMMEDIATE` transaction per research.md §3), and `findReservaById(id)`, relying on the `ux_reservas_bloque_activo` partial unique index from data-model.md as the DB-level backstop
-- [X] T031 [P] [US2] Update the shared `BLOQUES_DIA` constant in `backend/src/services/horarios.ts` to the 15 operational start times (`07:00`…`21:00`, rango operativo 07:00–22:00 per the 2026-09-13 clarification) and rebuild the disponibilidad service in `backend/src/services/disponibilidadService.ts` so it builds a 15-block grid (`07:00`→`22:00`, one entry per operational hour, no wraparound past `21:00`) marking each block `"disponible"` or `"reservado"` for a given cancha + fecha (FR-008) — depends on T029, T030
+- [X] T031 [P] [US2] Update the shared `BLOQUES_DIA` constant in `backend/src/services/horarios.ts` to the 15 operational start times (`07:00`…`21:00`, rango operativo 07:00–22:00 per the 2026-09-13 clarification) and rebuild the disponibilidad service in `backend/src/services/disponibilidadService.ts` so it builds a 15-block grid (`07:00`→`22:00`, one entry per operational hour, no wraparound past `21:00`) marking each block `"disponible"` or `"reservado"` for a given cancha + fecha (FR-008) — depends on T029, T030 — *superseded/extended by Phase 7 (T053-T056, FR-021): the full 15-block grid described here only applies to future dates*
 - [X] T032 [US2] Re-verify reserva service in `backend/src/services/reservaService.ts`: `crearReserva(usuarioId, canchaId, fecha, horaInicio)` validates the block is one of the 15 aligned hourly slots within the 07:00–22:00 operational range (via the updated `BLOQUES_DIA`/`esHoraInicioValida` from T031, FR-008, FR-013) and not in the past (FR-014), then — inside the same transaction — revalidates availability and the user's active-reservation limit before inserting (FR-010, FR-011, FR-015), translating a collision into `409 { "error": "Este horario ya no está disponible." }` and an existing active reservation into `409 { "error": "Ya tienes una reserva activa. Cancélala antes de crear una nueva." }`; confirm a request for `horaInicio: "23:00"` or `"03:00"` is rejected with `400` — depends on T030, T031
 - [X] T033 [US2] Implement `GET /api/canchas` route (no auth required) in `backend/src/api/canchasRoutes.ts` returning the 5 canchas in fixed order, per contracts/api.md — depends on T029
-- [X] T034 [US2] Implement `GET /api/canchas/:id/disponibilidad` route in `backend/src/api/canchasRoutes.ts`, protected by `requireAuth` (T011), returning `400`/`401`/`404` per contracts/api.md — depends on T031, T033, T011
+- [X] T034 [US2] Implement `GET /api/canchas/:id/disponibilidad` route in `backend/src/api/canchasRoutes.ts`, protected by `requireAuth` (T011), returning `400`/`401`/`404` per contracts/api.md — depends on T031, T033, T011 — *superseded/extended by Phase 7 (T053-T056, FR-021): the response filters past blocks when `fecha` is today*
 - [X] T035 [US2] Implement `POST /api/reservas` route in `backend/src/api/reservasRoutes.ts`, protected by `requireAuth` (T011), returning `201`/`400`/`401`/`404`/`409` per contracts/api.md — depends on T032, T011
 - [X] T036 [US2] Wire `canchasRoutes` and `reservasRoutes` into the Express app in `backend/src/api/app.ts` — depends on T034, T035, T023
 - [X] T037 [P] [US2] Create Canchas listing page in `frontend/src/pages/Canchas.tsx` calling `GET /api/canchas` (accessible without session, FR-006) — depends on T014, T033
-- [X] T038 [US2] Re-verify the date-picker + schedule grid component in `frontend/src/components/GrillaHorarios.tsx` renders correctly for the 15-block (07:00–22:00) grid returned after T031 — it already maps generically over the `bloques` prop, so confirm the layout still reads well with 15 items instead of 24 and adjust the `grid-cols-*` classes if needed — depends on T014, T034, T031
+- [X] T038 [US2] Re-verify the date-picker + schedule grid component in `frontend/src/components/GrillaHorarios.tsx` renders correctly for the 15-block (07:00–22:00) grid returned after T031 — it already maps generically over the `bloques` prop, so confirm the layout still reads well with 15 items instead of 24 and adjust the `grid-cols-*` classes if needed — depends on T014, T034, T031 — *superseded/extended by Phase 7 (T053-T056, FR-021): the grid may render fewer than 15 blocks, or an empty state, when `fecha` is today*
 - [X] T039 [US2] Create DetalleCancha page in `frontend/src/pages/DetalleCancha.tsx` combining date selection, `GrillaHorarios`, and the reservation-confirmation flow, showing the friendly `409` messages (bloque no disponible / ya tiene reserva activa) — depends on T037, T038, T035, T027
 - [X] T040 [US2] Wire the Canchas and DetalleCancha pages into `frontend/src/App.tsx` router, protecting `DetalleCancha` with `RequireAuth` — depends on T039, T028
 
@@ -141,6 +141,21 @@ Aplicación web (Opción 2 de plan.md): `backend/src/`, `frontend/src/`, `db/` e
 
 ---
 
+## Phase 7: Ajuste US2 — Grilla de hoy con bloques pasados filtrados (FR-021)
+
+**Purpose**: Fases 1-6 ya estaban completas cuando el spec se amplió (aclaración 2026-09-13) con FR-021: la grilla de disponibilidad de **hoy** debe excluir los bloques cuya `horaInicio` ya transcurrió (arreglo de longitud variable), mientras que las fechas futuras siguen devolviendo los 15 bloques completos. `research.md` §5, `data-model.md` y `contracts/api.md` ya documentan esta decisión; esta fase la implementa. Es un incremento sobre US2, no una historia nueva.
+
+**Independent Test**: Con sesión activa, consultar `GET /api/canchas/:id/disponibilidad` para hoy a media tarde y confirmar menos de 15 bloques (ninguno anterior a la hora actual); repetir con una fecha futura y confirmar los 15 bloques completos; consultar hoy después de las 21:00 y confirmar `bloques: []` sin error.
+
+- [X] T053 [US2] Add `esFechaPasada(fecha: string, ahora?: Date): boolean` helper to `backend/src/services/horarios.ts`, comparing the `YYYY-MM-DD` `fecha` string against today's date (same string-comparison approach as research.md §4) and returning `true` when `fecha` is strictly before today
+- [X] T054 [US2] Update `obtenerDisponibilidad` in `backend/src/services/disponibilidadService.ts` (depends on T053): throw `AppError(400, "La fecha indicada ya pasó.")` when `esFechaPasada(fecha)` is true (contracts/api.md), and filter the returned `bloques` array to drop entries where the existing `bloqueYaPaso(fecha, horaInicio)` helper from `horarios.ts` returns `true` (FR-021) — a future `fecha` keeps all 15 blocks (none have passed yet) while today's `fecha` keeps only the blocks from the current hour onward, possibly ending up `[]` once the last operational block has passed
+- [X] T055 [P] [US2] Update `GrillaHorarios.tsx` in `frontend/src/components/GrillaHorarios.tsx` to render a friendly empty-state message (e.g. "No quedan horarios disponibles hoy.") when `bloques` is `[]`, instead of an empty grid with no explanation (FR-021) — depends on T054
+- [X] T056 [US2] Manually validate Escenario 2b of `specs/001-reserva-canchas-padel/quickstart.md` (grilla de hoy con bloques pasados filtrados) against the running app: a same-day query mid-afternoon returns fewer than 15 blocks with none before the current hour, a future-date query still returns all 15, and a same-day query after 21:00 returns `bloques: []` without error — depends on T054, T055
+
+**Checkpoint**: US2 cumple FR-021 sin afectar el comportamiento ya validado para fechas futuras
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -152,6 +167,7 @@ Aplicación web (Opción 2 de plan.md): `backend/src/`, `frontend/src/`, `db/` e
   - US2 (P1) depende funcionalmente de que exista una sesión (US1) para probarse end-to-end, pero su código de disponibilidad/reserva es un módulo separado
   - US3 (P2) depende de que existan reservas (US2) para tener datos que gestionar, y de sesión (US1)
 - **Polish (Phase 6)**: Depende de que las historias deseadas estén completas
+- **Ajuste FR-021 (Phase 7)**: Depende de que Phase 4 (US2) esté completa; extiende `disponibilidadService.ts`/`GrillaHorarios.tsx` ya construidos, no bloquea ni es bloqueada por Phase 5/6
 
 ### User Story Dependencies
 

@@ -122,3 +122,19 @@ programada, para evitar la complejidad de un scheduler (Principio IV).
 | No más de una reserva activa por usuario (global) | FR-015 | Chequeo de servicio dentro de la transacción |
 | Cancelación solo de reservas futuras | FR-018 | Validación de servicio: `estado='activa' AND ahora < fecha+hora_inicio` |
 | Un usuario solo ve/gestiona sus propias reservas | FR-005 | Todas las queries de "Mis Reservas" filtran por `usuario_id` de la sesión activa |
+| Grilla de hoy excluye bloques con `hora_inicio` ya transcurrida (longitud variable); fechas futuras siempre devuelven 15 bloques | FR-021 | Filtro en memoria en `disponibilidadService`, no en el esquema — ver research.md §5 |
+
+## Vista de solo lectura: Grilla de Disponibilidad
+
+La grilla que arma `GET /api/canchas/:id/disponibilidad` (contracts/api.md)
+no es una entidad persistida: se calcula en cada consulta a partir de
+`canchas` + `reservas` (estado `activa`) para la `cancha_id`+`fecha` pedidos,
+más la hora actual del servidor cuando `fecha` es hoy.
+
+1. Partir de los 15 bloques operativos fijos (`07:00`…`21:00`).
+2. Marcar cada bloque `"reservado"` si existe una fila en `reservas` con
+   `estado='activa'` para esa `cancha_id`+`fecha`+`hora_inicio`; de lo
+   contrario `"disponible"`.
+3. Si `fecha === hoy`, descartar (sin marcar, sin sustituir) los bloques
+   cuya `hora_inicio < horaActual` (FR-021); el resultado puede tener entre 0
+   y 15 elementos. Si `fecha` es futura, no se descarta ningún bloque.
