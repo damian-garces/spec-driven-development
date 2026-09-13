@@ -293,3 +293,15 @@ Cada tarea del archivo `tasks.md` sigue el formato `[ID] [P?] [Story] Descripci�
 Las tareas se agrupan por fases: **Setup** (estructura inicial del proyecto), **Foundational** (infraestructura común que bloquea a todas las historias), una fase por cada **historia de usuario** (ordenadas por prioridad) y, opcionalmente, **Polish** al final. Cada fase de historia incluye un **Checkpoint**, que describe cómo validar que esa historia ya funciona de forma independiente antes de continuar con la siguiente.
 
 Al finalizar, Spec Kit guardará la lista de tareas en `tasks.md`, dentro de la carpeta de artefactos de la funcionalidad. Esta lista será la que se siga paso a paso al ejecutar `/speckit-implement`.
+
+### Análisis de consistencia
+
+Antes de implementar, se ejecuta `/speckit-analyze`. Este comando hace un análisis cruzado entre `spec.md`, `plan.md` y `tasks.md`: detecta contradicciones entre ellos, requisitos de la especificación que no quedaron cubiertos por ninguna tarea, tareas que no están respaldadas por la especificación y posibles violaciones a la constitución del proyecto.
+
+Dentro de Claude Code, ejecuta el comando slash `/speckit-analyze` después de haber ejecutado `/speckit-tasks` y antes de ejecutar `/speckit-implement`, para detectar y corregir inconsistencias antes de empezar a escribir código.
+
+### Implementación del proyecto
+
+Una vez analizada la consistencia, se ejecuta `/speckit-implement`. Este comando toma `tasks.md` y ejecuta las tareas en orden, respetando las fases (Setup, Foundational, historias de usuario y Polish), sus dependencias y las tareas marcadas con `[P]` que pueden ejecutarse en paralelo, generando el código real del proyecto según lo definido en `plan.md` y validado contra `spec.md` y la constitución.
+
+Dentro de Claude Code, ejecuta el comando slash `/speckit-implement` como último paso del flujo, después de haber ejecutado `/speckit-analyze`. Al finalizar cada historia de usuario, valida su checkpoint correspondiente antes de continuar con la siguiente.
