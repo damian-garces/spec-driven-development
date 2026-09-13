@@ -37,10 +37,10 @@ Aplicación web para que usuarios autenticados reserven bloques horarios de 1 ho
 | I. Catálogo Cerrado de Canchas (NON-NEGOTIABLE) | ✅ PASS | Las 5 canchas se modelan como filas fijas (seed), sin endpoint de creación/edición/borrado de canchas. Horarios siempre en formato 24h. |
 | II. Prevención de Doble Reserva (NON-NEGOTIABLE) | ✅ PASS | La confirmación de reserva se implementa como una única transacción SQLite (`BEGIN IMMEDIATE` + `INSERT ... WHERE NOT EXISTS` con `UNIQUE(cancha_id, fecha, hora_inicio)` como restricción de respaldo) — ver research.md y data-model.md. |
 | III. Autenticación Obligatoria | ✅ PASS | Todos los endpoints de disponibilidad detallada, creación y cancelación de reservas exigen sesión válida vía middleware de autenticación. |
-| IV. Simplicidad Ante Todo (YAGNI) | ✅ PASS | Estructura plana `/frontend`, `/backend`, `/db`; sin capas hexagonal/clean; componentes funcionales + Hooks; sin patrones de diseño adicionales. |
+| IV. Simplicidad Ante Todo (YAGNI) | ⚠ PARTIAL | Estructura plana `/frontend`, `/backend`, `/db`; sin capas hexagonal/clean; componentes funcionales + Hooks; sin patrones de diseño adicionales — todo eso cumple. Pero la enmienda v1.1.0 (2026-09-13) añadió: identificadores de código DEBEN estar en inglés, términos de dominio solo en mensajes/datos. El código ya implementado usa nombres en español (`crearReserva`, `cancelarReserva`, `canchaId`, `horaInicio`, `usuarios.ts`, `reservaService.ts`, etc.) y no cumple esta sub-regla todavía. Ver Complexity Tracking. |
 | V. Manejo de Errores Semántico y Amigable | ✅ PASS | Contratos de API (`contracts/`) definen 400/401/403/404/409 explícitos; el frontend traduce cada código a mensaje amigable, nunca expone stack traces. |
 
-**Resultado**: Sin violaciones. No se requiere Complexity Tracking.
+**Resultado**: 1 violación documentada y justificada (Principio IV, sub-regla de idioma de identificadores) — ver Complexity Tracking. Las demás 4 principios pasan sin excepciones.
 
 **Re-evaluación post-diseño (tras Fase 1)**: el diseño concreto en
 `data-model.md` (índice único parcial `ux_reservas_bloque_activo` +
@@ -48,6 +48,17 @@ transacción `BEGIN IMMEDIATE`) y `contracts/api.md` (guard de autenticación
 en todos los endpoints de reservas/disponibilidad, códigos 400/401/403/404/409
 explícitos) confirma el cumplimiento de los 5 principios sin introducir
 nuevas violaciones. Gate sigue en ✅ PASS.
+
+**Re-evaluación tras enmienda de la constitución (v1.1.0, 2026-09-13)**: la
+constitución se amplió con una regla nueva en el Principio IV (identificadores
+de código en inglés). Esta re-ejecución de `/speckit-plan` no modifica código
+ni renombra nada (fuera de su alcance); solo actualiza este gate para reflejar
+honestamente que la implementación existente, ya convergida (`/speckit-converge`
+reportó 0 gaps el 2026-09-13, antes de esta enmienda), no cumple la sub-regla
+nueva. Se documenta como violación justificada en Complexity Tracking en vez de
+bloquear el gate, porque bloquear no aporta valor sobre una feature ya
+implementada y validada — el remedio es una tarea de refactor explícita, no
+una repetición de este comando de planificación.
 
 ## Project Structure
 
@@ -81,8 +92,8 @@ backend/
 
 frontend/
 ├── src/
-│   ├── components/        # GrillaHorarios, TarjetaCancha, ReservaCard, etc.
-│   ├── pages/               # Login, Registro, Canchas, DetalleCancha, MisReservas
+│   ├── components/        # ScheduleGrid, etc.
+│   ├── pages/               # Login, Register, Courts, CourtDetail, MyReservations
 │   └── services/            # cliente HTTP hacia la API backend
 └── tests/
     ├── integration/
@@ -96,4 +107,6 @@ db/
 
 ## Complexity Tracking
 
-*No aplica — no hay violaciones del Constitution Check que justificar.*
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|---------------------------------------|
+| Principio IV (enmienda v1.1.0): identificadores de código deben estar en inglés; el código de esta feature usa nombres en español (`crearReserva`, `cancelarReserva`, `obtenerDisponibilidad`, `canchaId`, `horaInicio`, `usuarios.ts`, `canchas.ts`, `reservas.ts`, `horarios.ts`, `authService.ts`→interno en español, etc.) | La feature ya estaba implementada y convergida (0 gaps reportados por `/speckit-converge`) antes de que esta regla se añadiera a la constitución el 2026-09-13; no existía cuando se escribió el código. | Renombrar ahora en esta misma ejecución de `/speckit-plan` está fuera de su alcance (este comando no edita código) y mezclaría una re-planificación de gate con un refactor extenso de docenas de identificadores en todo el stack — más arriesgado que tratarlo como una tarea explícita, revisable y probada por separado (ver Next Actions en el reporte de este comando). |

@@ -9,14 +9,14 @@ import { useAuth } from "../services/authContext";
  * evitar un parpadeo hacia /login en cada recarga de página.
  */
 export default function RequireAuth({ children }: { children: ReactNode }) {
-  const { usuario, cargando } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (cargando) {
+  if (loading) {
     return null;
   }
 
-  if (!usuario) {
+  if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

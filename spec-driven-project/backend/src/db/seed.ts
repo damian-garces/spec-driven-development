@@ -3,7 +3,7 @@ import { getDb } from "./connection";
 // Principio I (NON-NEGOTIABLE): catálogo cerrado e inmutable de 5 canchas.
 // Este array es la única fuente del catálogo; no existe endpoint de API
 // para crear, editar o eliminar canchas.
-const CANCHAS_FIJAS = [
+const FIXED_COURTS = [
   "Cancha Laureles",
   "Cancha El Poblado",
   "Cancha Belén",
@@ -13,26 +13,26 @@ const CANCHAS_FIJAS = [
 
 /**
  * Inserta las 5 canchas fijas si la tabla está vacía. Idempotente: si ya
- * existen filas en `canchas`, no hace nada (evita duplicados en reinicios
+ * existen filas en `courts`, no hace nada (evita duplicados en reinicios
  * sucesivos del servidor).
  */
-export function seedCanchas(): void {
+export function seedCourts(): void {
   const db = getDb();
 
   const { total } = db
-    .prepare("SELECT COUNT(*) AS total FROM canchas")
+    .prepare("SELECT COUNT(*) AS total FROM courts")
     .get() as { total: number };
 
   if (total > 0) {
     return;
   }
 
-  const insertar = db.prepare("INSERT INTO canchas (nombre) VALUES (?)");
-  const insertarTodas = db.transaction((nombres: string[]) => {
-    for (const nombre of nombres) {
-      insertar.run(nombre);
+  const insert = db.prepare("INSERT INTO courts (name) VALUES (?)");
+  const insertAll = db.transaction((names: string[]) => {
+    for (const name of names) {
+      insert.run(name);
     }
   });
 
-  insertarTodas(CANCHAS_FIJAS);
+  insertAll(FIXED_COURTS);
 }

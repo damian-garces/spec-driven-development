@@ -1,26 +1,26 @@
 <!--
 Sync Impact Report
 ==================
-Version change: (template, unratified) → 1.0.0
-Rationale for bump: Initial ratification of the project constitution (no prior filled version existed).
+Version change: 1.0.0 → 1.1.0
+Rationale for bump: MINOR — material expansion of an existing principle's normative
+guidance (Principio IV gains a new, testable naming rule); no principle was removed or
+redefined incompatibly.
 
-Modified principles: none (first version — all principles newly defined)
-  - I. Catálogo Cerrado de Canchas (NON-NEGOTIABLE) [NEW]
-  - II. Prevención de Doble Reserva (NON-NEGOTIABLE) [NEW]
-  - III. Autenticación Obligatoria [NEW]
-  - IV. Simplicidad Ante Todo (YAGNI) [NEW]
-  - V. Manejo de Errores Semántico y Amigable [NEW]
+Modified principles:
+  - IV. Simplicidad Ante Todo (YAGNI) — added a mandatory English-identifiers rule
+    (variables, functions, types, classes, file names) with an explicit carve-out for
+    Spanish business-domain terms in user-facing messages and data. Title unchanged.
 
-Added sections:
-  - Stack Tecnológico y Estructura del Proyecto
-  - Flujo de Trabajo del Agente de IA (SDD)
+Added sections: none
 
-Removed sections: none (previous file was an unfilled template scaffold)
+Removed sections: none
 
 Templates requiring follow-up review (not modified by this command — scope guard):
-  - .specify/templates/plan-template.md — ⚠ verify Constitution Check gates reference the 5 principles above
-  - .specify/templates/spec-template.md — ⚠ verify no conflicting assumptions (e.g. dynamic court catalog, payments)
-  - .specify/templates/tasks-template.md — ⚠ verify task categorization allows enforcing double-booking checks at DB layer
+  - Existing application code under `backend/src/` and `frontend/src/` predates this
+    amendment and largely uses Spanish identifiers (e.g. `crearReserva`,
+    `cancelarReserva`, `canchaId`, `horaInicio`). It is not yet compliant with the new
+    rule; bringing it into compliance is implementation work outside this command's
+    scope (see Next Actions in the command's final summary, if applicable).
 
 Deferred placeholders / TODOs: none.
 -->
@@ -72,12 +72,22 @@ complejos innecesarios. Se prioriza programación funcional y componentes
 funcionales (React Hooks); el uso de clases solo se permite cuando sea
 estrictamente obligatorio por una dependencia externa. La nomenclatura usa
 `camelCase` para funciones y variables, y `PascalCase` para interfaces y
-tipos.
+tipos. Todos los identificadores de código (variables, funciones, tipos,
+clases y nombres de archivo) DEBEN estar en inglés; los términos de dominio
+del negocio (ej. `cancha`, `reserva`, `usuario`) pueden mantenerse en
+español dentro de mensajes al usuario, textos de error y datos (valores,
+contenido almacenado), pero NUNCA en nombres de código.
 
 **Rationale**: El dominio de negocio es pequeño y está bien acotado (5
 canchas, reservas por horario); no justifica complejidad arquitectónica. La
 simplicidad reduce el costo de mantenimiento y facilita verificar que la
 regla crítica de doble reserva (Principio II) se cumple en un único lugar.
+Los identificadores en inglés mantienen el código consistente con el idioma
+del stack y sus librerías (TypeScript, React, Express, SQLite), evitan
+mezclar dos idiomas dentro de un mismo nombre compuesto, y separan
+claramente el "idioma del código" del "idioma del negocio": el español
+queda reservado para lo que ve o escribe el usuario final y para el
+contenido de datos, no para la estructura interna del código.
 
 ### V. Manejo de Errores Semántico y Amigable
 El backend DEBE responder siempre con códigos de estado HTTP semánticos: 400
@@ -144,4 +154,4 @@ verificarse contra esta constitución antes de avanzar a la fase de
 implementación. Cualquier desviación DEBE justificarse explícitamente o
 corregirse antes de continuar.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-11 | **Last Amended**: 2026-09-11
+**Version**: 1.1.0 | **Ratified**: 2026-09-11 | **Last Amended**: 2026-09-13

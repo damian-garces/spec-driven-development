@@ -3,24 +3,24 @@ import { Link, useNavigate } from "react-router-dom";
 import { apiClient, ApiError } from "../services/apiClient";
 
 /** Página de registro (FR-001, FR-002): correo + contraseña. */
-export default function Registro() {
+export default function Register() {
   const navigate = useNavigate();
-  const [correo, setCorreo] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [enviando, setEnviando] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    setEnviando(true);
+    setSubmitting(true);
     try {
-      await apiClient.post("/auth/registro", { correo, password });
-      navigate("/login", { state: { registrado: true } });
+      await apiClient.post("/auth/register", { email, password });
+      navigate("/login", { state: { justRegistered: true } });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo completar el registro.");
     } finally {
-      setEnviando(false);
+      setSubmitting(false);
     }
   }
 
@@ -33,8 +33,8 @@ export default function Registro() {
           <input
             type="email"
             required
-            value={correo}
-            onChange={(e) => setCorreo(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="rounded border border-slate-300 px-3 py-2"
           />
         </label>
@@ -52,10 +52,10 @@ export default function Registro() {
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button
           type="submit"
-          disabled={enviando}
+          disabled={submitting}
           className="rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50"
         >
-          {enviando ? "Creando cuenta…" : "Registrarme"}
+          {submitting ? "Creando cuenta…" : "Registrarme"}
         </button>
       </form>
       <p className="text-sm text-slate-600">

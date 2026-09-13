@@ -1,18 +1,18 @@
 import bcrypt from "bcrypt";
 import { AppError } from "../middleware/errorHandler";
-import { findUsuarioByCorreo, insertUsuario, type Usuario } from "../models/usuarios";
+import { findUserByEmail, insertUser, type User } from "../models/users";
 
-const CORREO_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_MIN_LENGTH = 8;
 const BCRYPT_ROUNDS = 10;
 
-export interface UsuarioPublico {
+export interface PublicUser {
   id: number;
-  correo: string;
+  email: string;
 }
 
-function aUsuarioPublico(usuario: Usuario): UsuarioPublico {
-  return { id: usuario.id, correo: usuario.correo };
+function toPublicUser(user: User): PublicUser {
+  return { id: user.id, email: user.email };
 }
 
 /**
@@ -20,8 +20,8 @@ function aUsuarioPublico(usuario: Usuario): UsuarioPublico {
  * inválido o contraseñas demasiado cortas con 400, y correos ya usados
  * con 409 (FR-002).
  */
-export function registrar(correo: string, password: string): UsuarioPublico {
-  if (typeof correo !== "string" || !CORREO_REGEX.test(correo)) {
+export function register(email: string, password: string): PublicUser {
+  if (typeof email !== "string" || !EMAIL_REGEX.test(email)) {
     throw new AppError(400, "El correo electrónico no tiene un formato válido.");
   }
   if (typeof password !== "string" || password.length < PASSWORD_MIN_LENGTH) {
@@ -31,15 +31,15 @@ export function registrar(correo: string, password: string): UsuarioPublico {
     );
   }
 
-  const correoNormalizado = correo.toLowerCase();
+  const normalizedEmail = email.toLowerCase();
 
-  if (findUsuarioByCorreo(correoNormalizado)) {
+  if (findUserByEmail(normalizedEmail)) {
     throw new AppError(409, "El correo ya está en uso.");
   }
 
   const passwordHash = bcrypt.hashSync(password, BCRYPT_ROUNDS);
-  const usuario = insertUsuario(correoNormalizado, passwordHash);
-  return aUsuarioPublico(usuario);
+  const user = insertUser(normalizedEmail, passwordHash);
+  return toPublicUser(user);
 }
 
 /**
@@ -47,17 +47,17 @@ export function registrar(correo: string, password: string): UsuarioPublico {
  * son correctas; lanza 401 con un mensaje genérico en caso contrario (no
  * revela si el correo existe o no, por seguridad).
  */
-export function iniciarSesion(correo: string, password: string): UsuarioPublico {
-  const CREDENCIALES_INVALIDAS = "Correo o contraseña incorrectos.";
+export function login(email: string, password: string): PublicUser {
+  const INVALID_CREDENTIALS = "Correo o contraseña incorrectos.";
 
-  if (typeof correo !== "string" || typeof password !== "string") {
-    throw new AppError(401, CREDENCIALES_INVALIDAS);
+  if (typeof email !== "string" || typeof password !== "string") {
+    throw new AppError(401, INVALID_CREDENTIALS);
   }
 
-  const usuario = findUsuarioByCorreo(correo);
-  if (!usuario || !bcrypt.compareSync(password, usuario.password_hash)) {
-    throw new AppError(401, CREDENCIALES_INVALIDAS);
+  const user = findUserByEmail(email);
+  if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+    throw new AppError(401, INVALID_CREDENTIALS);
   }
 
-  return aUsuarioPublico(usuario);
+  return toPublicUser(user);
 }

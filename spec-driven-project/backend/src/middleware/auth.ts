@@ -7,7 +7,7 @@ import { AppError } from "./errorHandler";
  * mensaje amigable en lugar de dejar pasar la petición.
  */
 export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
-  if (!req.session?.usuarioId) {
+  if (!req.session?.userId) {
     next(new AppError(401, "No hay sesión activa."));
     return;
   }

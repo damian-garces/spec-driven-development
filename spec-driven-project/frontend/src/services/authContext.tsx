@@ -8,16 +8,16 @@ import {
 } from "react";
 import { apiClient } from "./apiClient";
 
-export interface UsuarioSesion {
+export interface SessionUser {
   id: number;
-  correo: string;
+  email: string;
 }
 
 interface AuthContextValue {
-  usuario: UsuarioSesion | null;
-  cargando: boolean;
-  iniciarSesion: (usuario: UsuarioSesion) => void;
-  cerrarSesion: () => Promise<void>;
+  user: SessionUser | null;
+  loading: boolean;
+  login: (user: SessionUser) => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -28,28 +28,28 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
  * refrescar la página), sin requerir que el usuario vuelva a iniciar sesión.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [usuario, setUsuario] = useState<UsuarioSesion | null>(null);
-  const [cargando, setCargando] = useState(true);
+  const [user, setUser] = useState<SessionUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     apiClient
-      .get<UsuarioSesion>("/auth/me")
-      .then(setUsuario)
-      .catch(() => setUsuario(null))
-      .finally(() => setCargando(false));
+      .get<SessionUser>("/auth/me")
+      .then(setUser)
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
   }, []);
 
-  const iniciarSesion = useCallback((nuevoUsuario: UsuarioSesion) => {
-    setUsuario(nuevoUsuario);
+  const login = useCallback((newUser: SessionUser) => {
+    setUser(newUser);
   }, []);
 
-  const cerrarSesion = useCallback(async () => {
+  const logout = useCallback(async () => {
     await apiClient.post("/auth/logout");
-    setUsuario(null);
+    setUser(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ usuario, cargando, iniciarSesion, cerrarSesion }}>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

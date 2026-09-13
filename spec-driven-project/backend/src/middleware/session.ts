@@ -21,7 +21,7 @@ export const sessionMiddleware: RequestHandler = session({
 // Amplía la sesión de express-session con el usuario autenticado.
 declare module "express-session" {
   interface SessionData {
-    usuarioId?: number;
-    correo?: string;
+    userId?: number;
+    email?: string;
   }
 }

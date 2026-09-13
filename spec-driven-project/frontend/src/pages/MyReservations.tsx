@@ -2,46 +2,46 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiClient, ApiError } from "../services/apiClient";
 
-interface ReservaItem {
+interface ReservationItem {
   id: number;
-  canchaNombre: string;
-  fecha: string;
-  horaInicio: string;
-  horaFin: string;
-  estado: "activa" | "cancelada" | "completada";
+  courtName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: "activa" | "cancelada" | "completada";
 }
 
-interface MisReservasResponse {
-  futuras: ReservaItem[];
-  historial: ReservaItem[];
+interface MyReservationsResponse {
+  upcoming: ReservationItem[];
+  history: ReservationItem[];
 }
 
-const ETIQUETA_ESTADO: Record<ReservaItem["estado"], string> = {
+const STATUS_LABEL: Record<ReservationItem["status"], string> = {
   activa: "Activa",
   completada: "Completada",
   cancelada: "Cancelada",
 };
 
-function FilaReserva({
-  reserva,
-  onCancelar,
+function ReservationRow({
+  reservation,
+  onCancel,
 }: {
-  reserva: ReservaItem;
-  onCancelar?: (id: number) => void;
+  reservation: ReservationItem;
+  onCancel?: (id: number) => void;
 }) {
   return (
     <li className="flex items-center justify-between rounded border border-slate-300 p-3">
       <div>
-        <p className="font-medium">{reserva.canchaNombre}</p>
+        <p className="font-medium">{reservation.courtName}</p>
         <p className="text-sm text-slate-600">
-          {reserva.fecha} · {reserva.horaInicio}–{reserva.horaFin} ·{" "}
-          {ETIQUETA_ESTADO[reserva.estado]}
+          {reservation.date} · {reservation.startTime}–{reservation.endTime} ·{" "}
+          {STATUS_LABEL[reservation.status]}
         </p>
       </div>
-      {onCancelar && (
+      {onCancel && (
         <button
           type="button"
-          onClick={() => onCancelar(reserva.id)}
+          onClick={() => onCancel(reservation.id)}
           className="text-sm text-red-600 underline"
         >
           Cancelar
@@ -52,41 +52,41 @@ function FilaReserva({
 }
 
 /** Panel "Mis Reservas" (FR-016 a FR-019). Requiere sesión activa. */
-export default function MisReservas() {
-  const [datos, setDatos] = useState<MisReservasResponse | null>(null);
+export default function MyReservations() {
+  const [data, setData] = useState<MyReservationsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [reservaACancelar, setReservaACancelar] = useState<number | null>(null);
+  const [reservationToCancel, setReservationToCancel] = useState<number | null>(null);
 
-  const cargar = useCallback(() => {
+  const load = useCallback(() => {
     setError(null);
     apiClient
-      .get<MisReservasResponse>("/reservas/mias")
-      .then(setDatos)
+      .get<MyReservationsResponse>("/reservations/mine")
+      .then(setData)
       .catch((err) =>
         setError(err instanceof ApiError ? err.message : "No se pudieron cargar tus reservas."),
       );
   }, []);
 
   useEffect(() => {
-    cargar();
-  }, [cargar]);
+    load();
+  }, [load]);
 
-  async function confirmarCancelacion() {
-    if (reservaACancelar === null) return;
+  async function confirmCancellation() {
+    if (reservationToCancel === null) return;
     setError(null);
     try {
-      await apiClient.delete(`/reservas/${reservaACancelar}`);
-      setReservaACancelar(null);
-      cargar();
+      await apiClient.delete(`/reservations/${reservationToCancel}`);
+      setReservationToCancel(null);
+      load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo cancelar la reserva.");
-      setReservaACancelar(null);
+      setReservationToCancel(null);
     }
   }
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <Link to="/canchas" className="text-sm underline">
+      <Link to="/courts" className="text-sm underline">
         ← Volver a canchas
       </Link>
 
@@ -94,19 +94,19 @@ export default function MisReservas() {
 
       {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
 
-      {datos && (
+      {data && (
         <>
           <section className="mt-6">
             <h2 className="mb-2 text-lg font-medium">Próximas</h2>
-            {datos.futuras.length === 0 ? (
+            {data.upcoming.length === 0 ? (
               <p className="text-sm text-slate-600">No tienes reservas futuras.</p>
             ) : (
               <ul className="flex flex-col gap-2">
-                {datos.futuras.map((r) => (
-                  <FilaReserva
+                {data.upcoming.map((r) => (
+                  <ReservationRow
                     key={r.id}
-                    reserva={r}
-                    onCancelar={(id) => setReservaACancelar(id)}
+                    reservation={r}
+                    onCancel={(id) => setReservationToCancel(id)}
                   />
                 ))}
               </ul>
@@ -115,12 +115,12 @@ export default function MisReservas() {
 
           <section className="mt-8">
             <h2 className="mb-2 text-lg font-medium">Historial</h2>
-            {datos.historial.length === 0 ? (
+            {data.history.length === 0 ? (
               <p className="text-sm text-slate-600">Aún no tienes reservas pasadas o canceladas.</p>
             ) : (
               <ul className="flex flex-col gap-2">
-                {datos.historial.map((r) => (
-                  <FilaReserva key={r.id} reserva={r} />
+                {data.history.map((r) => (
+                  <ReservationRow key={r.id} reservation={r} />
                 ))}
               </ul>
             )}
@@ -128,16 +128,16 @@ export default function MisReservas() {
         </>
       )}
 
-      {reservaACancelar !== null && (
+      {reservationToCancel !== null && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/30 p-4">
           <div className="w-full max-w-sm rounded bg-white p-5 shadow-lg">
             <p className="mb-4">¿Seguro que deseas cancelar esta reserva?</p>
             <div className="flex justify-end gap-3 text-sm">
-              <button onClick={() => setReservaACancelar(null)} className="underline">
+              <button onClick={() => setReservationToCancel(null)} className="underline">
                 Volver
               </button>
               <button
-                onClick={confirmarCancelacion}
+                onClick={confirmCancellation}
                 className="rounded bg-red-600 px-3 py-1.5 text-white"
               >
                 Sí, cancelar

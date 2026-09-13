@@ -1,5 +1,5 @@
 import { getDb } from "./db/connection";
-import { seedCanchas } from "./db/seed";
+import { seedCourts } from "./db/seed";
 import { createApp } from "./api/app";
 
 const PORT = Number(process.env.PORT ?? 3001);
@@ -7,7 +7,7 @@ const PORT = Number(process.env.PORT ?? 3001);
 // Bootstrap: aplica el schema (T007) e inserta el catálogo fijo de canchas
 // (T008) antes de levantar el servidor HTTP.
 getDb();
-seedCanchas();
+seedCourts();
 
 const app = createApp();
 

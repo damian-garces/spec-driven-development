@@ -1,46 +1,46 @@
 import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { apiClient, ApiError } from "../services/apiClient";
-import { useAuth, type UsuarioSesion } from "../services/authContext";
+import { useAuth, type SessionUser } from "../services/authContext";
 
 /** Página de inicio de sesión (FR-003). */
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { iniciarSesion } = useAuth();
-  const [correo, setCorreo] = useState("");
+  const { login } = useAuth();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [enviando, setEnviando] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const registrado = Boolean(
-    (location.state as { registrado?: boolean } | null)?.registrado,
+  const justRegistered = Boolean(
+    (location.state as { justRegistered?: boolean } | null)?.justRegistered,
   );
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    setEnviando(true);
+    setSubmitting(true);
     try {
-      const usuario = await apiClient.post<UsuarioSesion>("/auth/login", {
-        correo,
+      const user = await apiClient.post<SessionUser>("/auth/login", {
+        email,
         password,
       });
-      iniciarSesion(usuario);
-      navigate("/canchas");
+      login(user);
+      navigate("/courts");
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "No se pudo iniciar sesión.",
       );
     } finally {
-      setEnviando(false);
+      setSubmitting(false);
     }
   }
 
   return (
     <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 p-6">
       <h1 className="text-2xl font-semibold">Iniciar sesión</h1>
-      {registrado && (
+      {justRegistered && (
         <p className="rounded bg-green-50 p-2 text-sm text-green-700">
           Cuenta creada. Ahora puedes iniciar sesión.
         </p>
@@ -51,8 +51,8 @@ export default function Login() {
           <input
             type="email"
             required
-            value={correo}
-            onChange={(e) => setCorreo(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="rounded border border-slate-300 px-3 py-2"
           />
         </label>
@@ -69,15 +69,15 @@ export default function Login() {
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button
           type="submit"
-          disabled={enviando}
+          disabled={submitting}
           className="rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50"
         >
-          {enviando ? "Ingresando…" : "Ingresar"}
+          {submitting ? "Ingresando…" : "Ingresar"}
         </button>
       </form>
       <p className="text-sm text-slate-600">
         ¿No tienes cuenta?{" "}
-        <Link to="/registro" className="underline">
+        <Link to="/register" className="underline">
           Regístrate
         </Link>
       </p>
