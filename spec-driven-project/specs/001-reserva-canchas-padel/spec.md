@@ -15,6 +15,10 @@
 - Q: ¿El límite de "una reserva activa a la vez" aplica de forma global (todas las canchas juntas) o permite una reserva activa por cada cancha? → A: Global — el usuario puede tener como máximo 1 reserva activa en total, sin importar la cancha.
 - Q: Cuando un usuario cancela una reserva futura, ¿esa reserva debe quedar visible en su historial marcada como "Cancelada", o debe desaparecer por completo de los listados? → A: Se conserva en el historial, marcada como "Cancelada" con su fecha/hora original.
 
+### Session 2026-09-13
+
+- Q: ¿Debe el primer bloque horario visible de la grilla ser 07:00–08:00, o también debe mostrarse 06:00–07:00? → A: Rango visible 07:00–22:00 (15 bloques/día); no se muestra 06:00–07:00 ni ningún bloque desde 22:00 hasta 06:59.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Registro e Inicio de Sesión (Priority: P1)
@@ -36,7 +40,7 @@ Un visitante nuevo crea una cuenta con su correo electrónico y una contraseña,
 
 ### User Story 2 - Consultar Disponibilidad y Reservar una Cancha (Priority: P1)
 
-Un usuario autenticado elige una de las 5 canchas y una fecha, visualiza la grilla de horarios de 24 horas en bloques de 1 hora indicando qué bloques están disponibles y cuáles ya están reservados, selecciona un bloque libre y confirma su reserva.
+Un usuario autenticado elige una de las 5 canchas y una fecha, visualiza la grilla de horarios (07:00 a 22:00, en bloques de 1 hora) indicando qué bloques están disponibles y cuáles ya están reservados, selecciona un bloque libre y confirma su reserva.
 
 **Why this priority**: Es el propósito central de la aplicación: permitir que un usuario autenticado reserve un turno sin colisionar con otra reserva existente. Junto con la autenticación, constituye el producto mínimo viable.
 
@@ -44,7 +48,7 @@ Un usuario autenticado elige una de las 5 canchas y una fecha, visualiza la gril
 
 **Acceptance Scenarios**:
 
-1. **Given** un usuario autenticado, **When** selecciona una de las 5 canchas y una fecha, **Then** el sistema muestra la grilla de 24 bloques horarios de 1 hora para esa cancha y fecha, marcando cada bloque como "Disponible" o "Reservado".
+1. **Given** un usuario autenticado, **When** selecciona una de las 5 canchas y una fecha, **Then** el sistema muestra la grilla de 15 bloques horarios de 1 hora, cubriendo el rango operativo de 07:00 a 22:00, para esa cancha y fecha, marcando cada bloque como "Disponible" o "Reservado".
 2. **Given** la grilla de horarios visible, **When** el usuario selecciona un bloque marcado como "Disponible" y confirma la reserva, **Then** el sistema revalida que el bloque siga libre, la registra a nombre del usuario, y el bloque pasa a mostrarse como "Reservado".
 3. **Given** un bloque disponible seleccionado por el usuario, **When** otro usuario reserva ese mismo bloque justo antes de que se confirme la operación, **Then** el sistema rechaza la confirmación con un mensaje claro indicando que el horario ya no está disponible, sin crear la reserva.
 4. **Given** un usuario que ya tiene una reserva activa (futura y no cancelada), **When** intenta confirmar una nueva reserva, **Then** el sistema rechaza la operación e indica que ya cuenta con una reserva activa.
@@ -74,6 +78,7 @@ Un usuario autenticado consulta, desde un panel personal, la lista de sus reserv
 - ¿Qué ocurre si dos usuarios intentan confirmar el mismo bloque horario de la misma cancha casi simultáneamente? El sistema debe aceptar solo al primero que complete la validación y rechazar al segundo con un mensaje claro, sin dejar el bloque en un estado inconsistente.
 - ¿Qué ocurre si un usuario con una reserva activa cancela esa reserva? Debe quedar habilitado de inmediato para crear una nueva reserva, y la reserva cancelada debe seguir visible en su historial marcada como "Cancelada".
 - ¿Qué ocurre si un usuario intenta reservar un bloque parcial (por ejemplo 14:30 a 15:30)? El sistema solo permite bloques completos alineados a la hora (ej. 14:00–15:00).
+- ¿Qué ocurre si un usuario intenta reservar un bloque fuera del rango operativo (por ejemplo 23:00 o 03:00)? El sistema debe rechazarlo: esos bloques no se muestran en la grilla ni pueden reservarse, aun si se manipula la solicitud directamente.
 - ¿Qué ocurre si un usuario intenta ver o cancelar una reserva que pertenece a otro usuario (por ejemplo, manipulando un identificador)? El sistema debe impedirlo.
 - ¿Qué ocurre si un usuario no autenticado intenta acceder directamente a la grilla de disponibilidad o al panel de reservas? El sistema debe impedir el acceso y solicitar inicio de sesión.
 - ¿Qué ocurre cuando el reloj del sistema hace que una reserva "futura" pase a ser "pasada" mientras el usuario tiene el panel abierto? La próxima consulta al panel debe reflejar la reserva en el historial y ya no permitir su cancelación.
@@ -89,12 +94,12 @@ Un usuario autenticado consulta, desde un panel personal, la lista de sus reserv
 - **FR-005**: El sistema DEBE permitir que un usuario autenticado gestione (ver, cancelar) únicamente sus propias reservas, nunca las de otros usuarios.
 - **FR-006**: El sistema DEBE listar de forma estática las 5 canchas disponibles: Cancha Laureles, Cancha El Poblado, Cancha Belén, Cancha Robledo y Cancha Envigado.
 - **FR-007**: El sistema DEBE permitir que el usuario seleccione una cancha y una fecha específica para consultar su disponibilidad.
-- **FR-008**: El sistema DEBE mostrar, para la cancha y fecha seleccionadas, una grilla de 24 bloques horarios de 1 hora cada uno (formato 24 horas), indicando claramente cuáles están "Disponibles" y cuáles "Reservados".
+- **FR-008**: El sistema DEBE mostrar, para la cancha y fecha seleccionadas, una grilla de 15 bloques horarios de 1 hora cada uno (formato 24 horas), cubriendo únicamente el rango operativo de 07:00 a 22:00 (bloques `07:00`–`08:00` hasta `21:00`–`22:00`); los bloques entre `22:00` y `06:59` NO deben mostrarse. Cada bloque visible indica claramente si está "Disponible" o "Reservado".
 - **FR-009**: El sistema DEBE permitir que el usuario seleccione un bloque horario marcado como disponible y confirme una reserva sobre ese bloque.
 - **FR-010**: El sistema DEBE revalidar, en el momento de confirmar, que el bloque horario seleccionado siga disponible antes de registrar la reserva.
 - **FR-011**: El sistema DEBE rechazar la confirmación de una reserva sobre un bloque que dejó de estar disponible (porque otro usuario lo reservó primero), informando al usuario con un mensaje claro y sin registrar la reserva.
 - **FR-012**: El sistema DEBE impedir que se registre más de una reserva para la misma cancha, fecha y bloque horario.
-- **FR-013**: El sistema DEBE permitir reservar únicamente bloques horarios completos de 1 hora alineados en punto (ej. 14:00 a 15:00); no se permiten reservas de duración distinta ni desalineadas.
+- **FR-013**: El sistema DEBE permitir reservar únicamente bloques horarios completos de 1 hora alineados en punto (ej. 14:00 a 15:00) y dentro del rango operativo de 07:00 a 22:00 (FR-008); no se permiten reservas de duración distinta, desalineadas, ni fuera de dicho rango, incluso si la solicitud se envía directamente sin pasar por la grilla.
 - **FR-014**: El sistema DEBE impedir la creación de reservas en fechas u horarios que ya hayan transcurrido respecto al momento actual.
 - **FR-015**: El sistema DEBE impedir que un usuario tenga más de una reserva activa (futura y no cancelada) al mismo tiempo; esta restricción es global para el usuario, sin importar la cancha (no se permite una reserva activa por cancha).
 - **FR-016**: El sistema DEBE mostrar a cada usuario autenticado un panel con la lista de sus reservas futuras y un historial separado que incluye tanto sus reservas pasadas como sus reservas canceladas, mostrando en cada ítem el nombre de la cancha, la fecha, la hora y el estado ("Completada" o "Cancelada" según corresponda).
@@ -127,4 +132,5 @@ Un usuario autenticado consulta, desde un panel personal, la lista de sus reserv
 - No existe un límite explícito de cuántos días hacia el futuro puede reservar un usuario; el calendario permite seleccionar cualquier fecha futura.
 - Un usuario puede cancelar una reserva futura en cualquier momento antes de su hora de inicio, sin una ventana mínima de anticipación.
 - Un visitante sin sesión activa puede ver el listado estático de las 5 canchas, pero no la grilla de disponibilidad ni crear reservas.
+- El club opera de 07:00 a 22:00; cualquier reserva creada antes de esta restricción sobre un bloque fuera de ese rango sigue mostrándose normalmente en el historial de "Mis Reservas", ya que la restricción de horario aplica a la creación de nuevas reservas, no a datos históricos.
 - "Reserva activa" significa una reserva futura (aún no iniciada) que no ha sido cancelada; al cancelarla o al transcurrir su horario, el usuario queda habilitado para crear una nueva reserva.

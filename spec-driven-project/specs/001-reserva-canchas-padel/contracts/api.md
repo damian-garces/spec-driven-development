@@ -73,9 +73,9 @@ un visitante puede ver el listado, pero no la disponibilidad detallada
 
 ### `GET /api/canchas/:id/disponibilidad?fecha=YYYY-MM-DD`
 
-Grilla de 24 bloques horarios para una cancha y fecha (FR-007, FR-008).
-**Requiere autenticación** (FR-004: disponibilidad completa solo para
-usuarios con sesión activa).
+Grilla de 15 bloques horarios, cubriendo el rango operativo de 07:00 a 22:00,
+para una cancha y fecha (FR-007, FR-008). **Requiere autenticación** (FR-004:
+disponibilidad completa solo para usuarios con sesión activa).
 
 **Responses**:
 - `200 OK` →
@@ -84,12 +84,14 @@ usuarios con sesión activa).
     "canchaId": 1,
     "fecha": "2026-09-15",
     "bloques": [
-      { "horaInicio": "00:00", "horaFin": "01:00", "estado": "disponible" },
+      { "horaInicio": "07:00", "horaFin": "08:00", "estado": "disponible" },
       { "horaInicio": "14:00", "horaFin": "15:00", "estado": "reservado" }
     ]
   }
   ```
-  (siempre 24 elementos en `bloques`, uno por cada hora del día, orden `00:00`→`23:00`)
+  (siempre 15 elementos en `bloques`, uno por cada hora operativa, orden
+  `07:00`→`21:00`; los bloques entre `22:00` y `06:00` no forman parte de la
+  respuesta — FR-008)
 - `400 Bad Request` → `fecha` ausente o con formato inválido
 - `401 Unauthorized` → sin sesión activa
 - `404 Not Found` → `canchaId` inexistente
@@ -120,7 +122,7 @@ rechaza si el usuario ya tiene una reserva activa (FR-015).
     "estado": "activa"
   }
   ```
-- `400 Bad Request` — `{ "error": "El bloque horario seleccionado no es válido." }` (no alineado a la hora, o `fecha`/`horaInicio` ya transcurrida — FR-013, FR-014)
+- `400 Bad Request` — `{ "error": "El bloque horario seleccionado no es válido." }` (no alineado a la hora, fuera del rango operativo 07:00–22:00, o `fecha`/`horaInicio` ya transcurrida — FR-008, FR-013, FR-014)
 - `401 Unauthorized` — sin sesión activa
 - `404 Not Found` — `canchaId` inexistente
 - `409 Conflict` — dos variantes, mismo código, mensaje distinto:

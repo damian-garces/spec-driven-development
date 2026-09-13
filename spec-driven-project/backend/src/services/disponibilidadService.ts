@@ -1,7 +1,7 @@
 import { AppError } from "../middleware/errorHandler";
 import { findCanchaById } from "../models/canchas";
 import { findBloquesReservados } from "../models/reservas";
-import { BLOQUES_DIA, esFechaValida } from "./horarios";
+import { BLOQUES_DIA, esFechaValida, horaFinDeBloque } from "./horarios";
 
 export interface BloqueDisponibilidad {
   horaInicio: string;
@@ -16,8 +16,9 @@ export interface Disponibilidad {
 }
 
 /**
- * Construye la grilla de 24 bloques horarios para una cancha+fecha (FR-007,
- * FR-008), marcando cada uno como "disponible" o "reservado".
+ * Construye la grilla de 15 bloques horarios operativos (07:00 a 22:00)
+ * para una cancha+fecha (FR-007, FR-008), marcando cada uno como
+ * "disponible" o "reservado".
  */
 export function obtenerDisponibilidad(canchaId: number, fecha: unknown): Disponibilidad {
   const cancha = findCanchaById(canchaId);
@@ -31,9 +32,9 @@ export function obtenerDisponibilidad(canchaId: number, fecha: unknown): Disponi
 
   const bloquesReservados = findBloquesReservados(canchaId, fecha);
 
-  const bloques: BloqueDisponibilidad[] = BLOQUES_DIA.map((horaInicio, i) => ({
+  const bloques: BloqueDisponibilidad[] = BLOQUES_DIA.map((horaInicio) => ({
     horaInicio,
-    horaFin: BLOQUES_DIA[(i + 1) % 24],
+    horaFin: horaFinDeBloque(horaInicio),
     estado: bloquesReservados.has(horaInicio) ? "reservado" : "disponible",
   }));
 

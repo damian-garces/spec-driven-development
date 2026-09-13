@@ -26,7 +26,7 @@ Aplicación web para que usuarios autenticados reserven bloques horarios de 1 ho
 
 **Constraints**: Consistencia estricta anti-doble-reserva (Principio II, NON-NEGOTIABLE) mediante transacción atómica SQLite; sin dependencias externas de red (pagos, email/SMS); una única zona horaria del servidor
 
-**Scale/Scope**: 5 canchas fijas, 24 bloques horarios/día/cancha, escala de un club individual (no multi-tenant); 3 historias de usuario (auth, exploración+reserva, gestión de mis reservas)
+**Scale/Scope**: 5 canchas fijas, 15 bloques horarios/día/cancha (rango operativo 07:00–22:00), escala de un club individual (no multi-tenant); 3 historias de usuario (auth, exploración+reserva, gestión de mis reservas)
 
 ## Constitution Check
 

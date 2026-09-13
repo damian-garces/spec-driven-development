@@ -33,7 +33,7 @@ cd frontend && npm run dev
 4. Sin cookie de sesión, `GET /api/canchas/1/disponibilidad?fecha=<mañana>` →
    esperar `401` (FR-004).
 5. Con la cookie del paso 3, repetir la llamada del paso 4 → esperar `200`
-   con 24 bloques.
+   con 15 bloques, del rango 07:00 a 22:00.
 
 **Resultado esperado**: cuenta creada, sesión concedida, acceso a
 disponibilidad completa condicionado a sesión activa. Corresponde a
@@ -57,10 +57,13 @@ Acceptance Scenarios 1-4 de US1.
    "Ya tienes una reserva activa..." (FR-015).
 7. Intentar `POST /api/reservas` con una `fecha`/`horaInicio` ya pasada →
    esperar `400` (FR-014).
+8. Intentar `POST /api/reservas` con `horaInicio: "23:00"` (fuera del rango
+   operativo 07:00–22:00) → esperar `400` (FR-008, FR-013).
 
-**Resultado esperado**: reserva creada solo cuando el bloque está libre y el
-usuario no tiene otra activa; ninguna doble reserva sobre el mismo bloque
-(SC-003). Corresponde a Acceptance Scenarios 1-5 de US2.
+**Resultado esperado**: reserva creada solo cuando el bloque está libre, está
+dentro del rango operativo, y el usuario no tiene otra activa; ninguna doble
+reserva sobre el mismo bloque (SC-003). Corresponde a Acceptance Scenarios
+1-5 de US2.
 
 ## Escenario 3 — Gestionar Mis Reservas (US3, P2)
 

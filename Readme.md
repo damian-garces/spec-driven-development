@@ -262,6 +262,8 @@ Después de generar la especificación, se ejecuta `/speckit-clarify`. Este coma
 
 Dentro de Claude Code, ejecuta el comando slash `/speckit-clarify` justo después de crear el `spec` con `/speckit-specify`, y antes de ejecutar `/speckit-plan`.
 
+`/speckit-clarify` también se puede volver a ejecutar más adelante, no solo la primera vez. Sirve para **corregir o precisar un requerimiento que ya existe** en `spec.md` (por ejemplo, si un dato quedó mal definido, como asumir que las reservas aplican a las 24 horas cuando en realidad solo deben permitirse en un horario específico del club). No es el comando adecuado para agregar una funcionalidad completamente nueva que no existía en la spec; para eso se actualiza `spec.md` directamente o se vuelve a pasar por `/speckit-specify`. Si corriges algo con `/speckit-clarify` después de haber generado `plan.md` o `tasks.md`, vuelve a ejecutar `/speckit-plan`, `/speckit-tasks` y `/speckit-analyze` para que reflejen el cambio antes de implementarlo.
+
 ### Generación del plan técnico
 
 Una vez aclarada la especificación, se ejecuta `/speckit-plan`. Este comando toma el `spec.md` ya aclarado (el "qué") y lo traduce en un plan técnico (el "cómo"): define la arquitectura, el stack a utilizar, los modelos de datos, los contratos entre componentes y el enfoque de implementación, siempre respetando las reglas ya establecidas en la constitución del proyecto.
@@ -305,3 +307,9 @@ Dentro de Claude Code, ejecuta el comando slash `/speckit-analyze` después de h
 Una vez analizada la consistencia, se ejecuta `/speckit-implement`. Este comando toma `tasks.md` y ejecuta las tareas en orden, respetando las fases (Setup, Foundational, historias de usuario y Polish), sus dependencias y las tareas marcadas con `[P]` que pueden ejecutarse en paralelo, generando el código real del proyecto según lo definido en `plan.md` y validado contra `spec.md` y la constitución.
 
 Dentro de Claude Code, ejecuta el comando slash `/speckit-implement` como último paso del flujo, después de haber ejecutado `/speckit-analyze`. Al finalizar cada historia de usuario, valida su checkpoint correspondiente antes de continuar con la siguiente.
+
+### Convergencia del proyecto
+
+`/speckit-converge` evalúa el código ya implementado contra `spec.md`, `plan.md` y `tasks.md`, y agrega como nuevas tareas en `tasks.md` cualquier trabajo pendiente o desviación detectada. Se usa para cerrar la brecha entre lo especificado y lo realmente construido, en lugar de asumir que la implementación quedó completa solo porque `/speckit-implement` terminó de ejecutarse.
+
+Dentro de Claude Code, ejecuta el comando slash `/speckit-converge` después de `/speckit-implement`. Si detecta trabajo pendiente, vuelve a ejecutar `/speckit-implement` para completarlo y repite `/speckit-converge` hasta que reporte que el proyecto está convergido.

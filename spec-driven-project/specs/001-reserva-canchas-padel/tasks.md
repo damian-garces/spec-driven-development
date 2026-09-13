@@ -86,7 +86,7 @@ Aplicación web (Opción 2 de plan.md): `backend/src/`, `frontend/src/`, `db/` e
 
 ## Phase 4: User Story 2 - Consultar Disponibilidad y Reservar una Cancha (Priority: P1)
 
-**Goal**: Un usuario autenticado elige una de las 5 canchas y una fecha, ve la grilla de 24 bloques horarios (disponible/reservado), y confirma una reserva sobre un bloque libre, con revalidación atómica anti-colisión y límite de una reserva activa global.
+**Goal**: Un usuario autenticado elige una de las 5 canchas y una fecha, ve la grilla de 15 bloques horarios (07:00–22:00, disponible/reservado), y confirma una reserva sobre un bloque libre, con revalidación atómica anti-colisión y límite de una reserva activa global.
 
 **Independent Test**: Con un usuario autenticado y datos de prueba, seleccionar cancha y fecha, confirmar que los bloques ocupados se muestran como "Reservados" y los libres como "Disponibles", y completar una reserva sobre un bloque libre; verificar rechazo ante colisión y ante una segunda reserva activa.
 
@@ -94,14 +94,14 @@ Aplicación web (Opción 2 de plan.md): `backend/src/`, `frontend/src/`, `db/` e
 
 - [X] T029 [P] [US2] Create canchas data-access module in `backend/src/models/canchas.ts` with `listCanchas()` and `findCanchaById(id)`, reading the fixed catalog seeded in T008
 - [X] T030 [P] [US2] Create reservas data-access module in `backend/src/models/reservas.ts` with `findBloquesReservados(canchaId, fecha)`, `findReservaActivaByUsuario(usuarioId)`, `insertReservaAtomic(usuarioId, canchaId, fecha, horaInicio, horaFin)` (wrapped in a `BEGIN IMMEDIATE` transaction per research.md §3), and `findReservaById(id)`, relying on the `ux_reservas_bloque_activo` partial unique index from data-model.md as the DB-level backstop
-- [X] T031 [P] [US2] Implement disponibilidad service in `backend/src/services/disponibilidadService.ts` building the 24-block grid (`00:00`→`23:00`, one entry per hour) marking each block `"disponible"` or `"reservado"` for a given cancha + fecha (FR-008) — depends on T029, T030
-- [X] T032 [P] [US2] Implement reserva service in `backend/src/services/reservaService.ts`: `crearReserva(usuarioId, canchaId, fecha, horaInicio)` validates the block is one of the 24 aligned hourly slots (FR-013) and not in the past (FR-014), then — inside the same transaction — revalidates availability and the user's active-reservation limit before inserting (FR-010, FR-011, FR-015), translating a collision into `409 { "error": "Este horario ya no está disponible." }` and an existing active reservation into `409 { "error": "Ya tienes una reserva activa. Cancélala antes de crear una nueva." }` — depends on T030
+- [X] T031 [P] [US2] Update the shared `BLOQUES_DIA` constant in `backend/src/services/horarios.ts` to the 15 operational start times (`07:00`…`21:00`, rango operativo 07:00–22:00 per the 2026-09-13 clarification) and rebuild the disponibilidad service in `backend/src/services/disponibilidadService.ts` so it builds a 15-block grid (`07:00`→`22:00`, one entry per operational hour, no wraparound past `21:00`) marking each block `"disponible"` or `"reservado"` for a given cancha + fecha (FR-008) — depends on T029, T030
+- [X] T032 [US2] Re-verify reserva service in `backend/src/services/reservaService.ts`: `crearReserva(usuarioId, canchaId, fecha, horaInicio)` validates the block is one of the 15 aligned hourly slots within the 07:00–22:00 operational range (via the updated `BLOQUES_DIA`/`esHoraInicioValida` from T031, FR-008, FR-013) and not in the past (FR-014), then — inside the same transaction — revalidates availability and the user's active-reservation limit before inserting (FR-010, FR-011, FR-015), translating a collision into `409 { "error": "Este horario ya no está disponible." }` and an existing active reservation into `409 { "error": "Ya tienes una reserva activa. Cancélala antes de crear una nueva." }`; confirm a request for `horaInicio: "23:00"` or `"03:00"` is rejected with `400` — depends on T030, T031
 - [X] T033 [US2] Implement `GET /api/canchas` route (no auth required) in `backend/src/api/canchasRoutes.ts` returning the 5 canchas in fixed order, per contracts/api.md — depends on T029
 - [X] T034 [US2] Implement `GET /api/canchas/:id/disponibilidad` route in `backend/src/api/canchasRoutes.ts`, protected by `requireAuth` (T011), returning `400`/`401`/`404` per contracts/api.md — depends on T031, T033, T011
 - [X] T035 [US2] Implement `POST /api/reservas` route in `backend/src/api/reservasRoutes.ts`, protected by `requireAuth` (T011), returning `201`/`400`/`401`/`404`/`409` per contracts/api.md — depends on T032, T011
 - [X] T036 [US2] Wire `canchasRoutes` and `reservasRoutes` into the Express app in `backend/src/api/app.ts` — depends on T034, T035, T023
 - [X] T037 [P] [US2] Create Canchas listing page in `frontend/src/pages/Canchas.tsx` calling `GET /api/canchas` (accessible without session, FR-006) — depends on T014, T033
-- [X] T038 [P] [US2] Create the date-picker + 24-block schedule grid component in `frontend/src/components/GrillaHorarios.tsx` rendering each block's `"disponible"`/`"reservado"` state — depends on T014, T034
+- [X] T038 [US2] Re-verify the date-picker + schedule grid component in `frontend/src/components/GrillaHorarios.tsx` renders correctly for the 15-block (07:00–22:00) grid returned after T031 — it already maps generically over the `bloques` prop, so confirm the layout still reads well with 15 items instead of 24 and adjust the `grid-cols-*` classes if needed — depends on T014, T034, T031
 - [X] T039 [US2] Create DetalleCancha page in `frontend/src/pages/DetalleCancha.tsx` combining date selection, `GrillaHorarios`, and the reservation-confirmation flow, showing the friendly `409` messages (bloque no disponible / ya tiene reserva activa) — depends on T037, T038, T035, T027
 - [X] T040 [US2] Wire the Canchas and DetalleCancha pages into `frontend/src/App.tsx` router, protecting `DetalleCancha` with `RequireAuth` — depends on T039, T028
 
@@ -137,7 +137,7 @@ Aplicación web (Opción 2 de plan.md): `backend/src/`, `frontend/src/`, `db/` e
 
 - [X] T050 [P] Complete the friendly error-message mapping in `frontend/src/services/apiClient.ts` for every documented status code (400/401/403/404/409) so the UI never shows a raw error or stack trace (Principio V)
 - [X] T051 [P] Document backend/frontend setup and run commands in `Readme.md`, matching the "Puesta en marcha" steps of `specs/001-reserva-canchas-padel/quickstart.md`
-- [X] T052 Execute the three end-to-end scenarios in `specs/001-reserva-canchas-padel/quickstart.md` manually against the running app and fix any discrepancy found
+- [X] T052 Re-execute the three end-to-end scenarios in `specs/001-reserva-canchas-padel/quickstart.md` manually against the running app — including Escenario 1's updated 15-block/07:00–22:00 expectation and Escenario 2's new step 8 (rejecting `horaInicio: "23:00"`) — and fix any discrepancy found — depends on T031, T032, T038
 
 ---
 
@@ -171,7 +171,7 @@ Aplicación web (Opción 2 de plan.md): `backend/src/`, `frontend/src/`, `db/` e
 - Todas las tareas [P] de Setup pueden ejecutarse en paralelo
 - Todas las tareas [P] de Foundational pueden ejecutarse en paralelo entre sí
 - Dentro de US1: T017 (modelo) es paralelo a otras tareas de Setup/Foundational restantes; T024/T025/T026 (páginas y contexto, archivos distintos) son paralelas entre sí
-- Dentro de US2: T029/T030 (modelos, archivos distintos) son paralelos; T031/T032 (servicios, archivos distintos, ambos dependen solo de T029/T030) son paralelos entre sí; T037/T038 (páginas/componentes frontend) son paralelos entre sí
+- Dentro de US2: T029/T030 (modelos, archivos distintos) son paralelos; T031 (servicios + `horarios.ts`) debe completarse antes de T032 y T038, ya que ambos re-verifican su comportamiento contra el nuevo rango de 15 bloques que T031 introduce en `BLOQUES_DIA`
 - Distintos miembros de un equipo podrían tomar US1, US2 (backend) y US3 (backend) en paralelo tras Foundational, aunque las pruebas end-to-end de US2/US3 requieran que US1 esté disponible
 
 ---
@@ -183,9 +183,12 @@ Aplicación web (Opción 2 de plan.md): `backend/src/`, `frontend/src/`, `db/` e
 Task: "Create canchas data-access module in backend/src/models/canchas.ts"
 Task: "Create reservas data-access module in backend/src/models/reservas.ts"
 
-# Una vez completos, lanzar juntos los servicios (archivos distintos, ambos dependen solo de los modelos anteriores):
-Task: "Implement disponibilidad service in backend/src/services/disponibilidadService.ts"
-Task: "Implement reserva service in backend/src/services/reservaService.ts"
+# Una vez completos los modelos, actualizar primero el rango operativo compartido y el servicio de disponibilidad:
+Task: "Update BLOQUES_DIA in backend/src/services/horarios.ts and rebuild backend/src/services/disponibilidadService.ts for the 15-block range"
+
+# Solo después, re-verificar en paralelo los consumidores de BLOQUES_DIA (archivos distintos):
+Task: "Re-verify reserva service in backend/src/services/reservaService.ts"
+Task: "Re-verify GrillaHorarios in frontend/src/components/GrillaHorarios.tsx"
 ```
 
 ---

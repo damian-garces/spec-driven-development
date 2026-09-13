@@ -48,7 +48,7 @@ Ocupación de una cancha por un usuario en un bloque horario de 1 hora
 | `usuario_id` | INTEGER | `NOT NULL REFERENCES usuarios(id)` | |
 | `cancha_id` | INTEGER | `NOT NULL REFERENCES canchas(id)` | |
 | `fecha` | TEXT | `NOT NULL` | Formato `YYYY-MM-DD` |
-| `hora_inicio` | TEXT | `NOT NULL` | Formato `HH:00`, 24h, uno de los 24 bloques del día |
+| `hora_inicio` | TEXT | `NOT NULL` | Formato `HH:00`, 24h, uno de los 15 bloques operativos del día (`07:00` a `21:00`, rango 07:00–22:00) |
 | `hora_fin` | TEXT | `NOT NULL` | Siempre `hora_inicio + 1h`; almacenado por conveniencia de lectura, no editable independientemente |
 | `estado` | TEXT | `NOT NULL CHECK(estado IN ('activa','cancelada','completada'))` | Ver máquina de estados abajo |
 | `creada_en` | TEXT | `NOT NULL DEFAULT CURRENT_TIMESTAMP` | |
@@ -116,7 +116,7 @@ programada, para evitar la complejidad de un scheduler (Principio IV).
 | Regla | Origen | Dónde se aplica |
 |---|---|---|
 | Correo único | FR-002 | `UNIQUE` en `usuarios.correo` + chequeo previo amigable |
-| Solo bloques de 1h alineados (`HH:00`–`HH+1:00`) | FR-013 | Validación de servicio: `hora_inicio` ∈ conjunto de 24 valores válidos |
+| Solo bloques de 1h alineados dentro del rango operativo (`HH:00`–`HH+1:00`, 07:00–22:00) | FR-008, FR-013 | Validación de servicio: `hora_inicio` ∈ conjunto de 15 valores válidos (`07:00`…`21:00`) |
 | Sin reservas en fecha/hora pasada | FR-014 | Validación de servicio comparando contra `now()` del servidor antes de insertar |
 | No más de una reserva activa por bloque | FR-012 | Índice único parcial `ux_reservas_bloque_activo` |
 | No más de una reserva activa por usuario (global) | FR-015 | Chequeo de servicio dentro de la transacción |
